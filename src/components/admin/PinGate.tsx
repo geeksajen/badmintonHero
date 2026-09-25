@@ -1,4 +1,5 @@
-import { Delete } from 'lucide-react';
+import { ArrowLeft, Delete } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useState, type ReactNode } from 'react';
 
 const OK_KEY = 'bhq:admin-ok';
@@ -46,7 +47,14 @@ export function PinGate({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-900 px-6 text-white">
+    <div className="relative flex min-h-dvh flex-col items-center justify-center bg-slate-900 px-6 text-white">
+      {/* PWA 全螢幕沒有瀏覽器返回鍵，小孩誤入時要能自己回去 */}
+      <Link
+        to="/"
+        className="absolute left-3 top-[max(0.75rem,env(safe-area-inset-top))] flex min-h-[64px] items-center gap-2 rounded-2xl bg-white/10 px-5 text-xl font-bold hover:bg-white/20"
+      >
+        <ArrowLeft /> 回冒險地圖
+      </Link>
       <div className="mb-2 text-5xl">🔐</div>
       <h1 className="mb-6 text-2xl font-black">家長控制台</h1>
       <div className={`mb-8 flex gap-4 ${shake ? 'animate-[breathe_0.15s_ease-in-out_3]' : ''}`}>

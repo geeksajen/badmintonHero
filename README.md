@@ -70,7 +70,7 @@ npm run dev          # http://localhost:5173/badmintonHero/
 
 ### 3. 兩台裝置
 - iPad 與手機各開一次網址、登入家庭帳號（之後會記住）→ Safari「分享 → 加入主畫面」即可全螢幕使用。
-- 家長手機開 `…/#/admin`。
+- 家長控制台：**https://geeksajen.github.io/badmintonHero/#/admin**，或點小孩畫面右上角的灰色 🔒（仍需輸入 PIN）。
 
 ### 本機測試 Firebase 模式
 複製 `.env.example` 為 `.env.local`，填入 Firebase 設定並設 `VITE_STORE_MODE=firebase`。

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { Backpack, Pencil, Volume2, VolumeX } from 'lucide-react';
+import { Backpack, Lock, Pencil, Volume2, VolumeX } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { expToNext } from '../../engine/exp';
 import { weeksLeft } from '../../engine/graduation';
 import { useReadyGame } from '../../hooks/useGameState';
@@ -80,6 +81,14 @@ export function HeroHeader({ onOpenBag, onOpenProfile }: { onOpenBag: () => void
         >
           {muted ? <VolumeX size={28} /> : <Volume2 size={28} />}
         </button>
+        {/* 家長入口：刻意低調；進去後仍需 PIN（spec §8.2 原本不放入口，但 PWA 全螢幕模式無法手動輸入網址） */}
+        <Link
+          to="/admin"
+          aria-label="家長專區"
+          className="flex h-16 w-12 shrink-0 items-center justify-center rounded-2xl text-white/25 hover:bg-white/10 hover:text-white/60"
+        >
+          <Lock size={20} />
+        </Link>
       </div>
     </header>
   );
