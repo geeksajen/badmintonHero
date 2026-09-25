@@ -14,6 +14,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // 由 src/lib/pwa.ts 自行註冊：偵測到新版就自動重新載入，並定期檢查更新
+      injectRegister: false,
       includeAssets: ['icons/*.png', 'icons/*.svg', 'sounds/*'],
       manifest: {
         name: '羽球勇者冒險記 Badminton Hero Quest',
@@ -34,6 +36,9 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // 新版 SW 下載完立刻接手（不排隊等所有分頁關閉），src/lib/pwa.ts 會接著重新載入頁面
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,png,svg,wav,mp3}'],
         navigateFallback: `${BASE}index.html`,
       },
