@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <title>羽球勇者冒險記</title>
+    <script>
+      // 保險：HashRouter 下通常用不到。若有人開了 /badminton_game/admin 這種非 hash 路徑，轉回 #/admin
+      (function () {
+        var parts = location.pathname.split('/').filter(Boolean);
+        var base = parts.length ? '/' + parts[0] + '/' : '/';
+        var rest = parts.slice(1).join('/');
+        location.replace(base + '#/' + rest + location.search);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

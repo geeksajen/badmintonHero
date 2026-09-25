@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 單一家庭共用帳號的 UID，部署時填入實際值（Firebase Console → Authentication → Users）
+    function isFamily() {
+      return request.auth != null
+          && request.auth.uid == 'REPLACE_WITH_FAMILY_UID';
+    }
+
+    match /players/{playerId} {
+      allow read, write: if isFamily();
+      match /{document=**} {
+        allow read, write: if isFamily();
+      }
+    }
+
+    // 其餘一律拒絕
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

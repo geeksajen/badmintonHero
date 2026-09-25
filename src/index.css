@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Noto Sans TC', system-ui, -apple-system, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    font-size: 18px; /* spec §8.3：正文最小 18px */
+    -webkit-tap-highlight-color: transparent;
+    background: #1e1b4b;
+  }
+  body {
+    overscroll-behavior-y: none;
+    /* clip 而非 hidden：hidden 會讓 body 變成捲動容器，導致 sticky header 失效 */
+    overflow-x: clip;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  input,
+  textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  code {
+    @apply rounded bg-slate-100 px-1 font-mono text-[0.85em];
+  }
+}
+
+/* spec §8.5：prefers-reduced-motion —— 關閉持續動畫與大幅位移，保留顏色變化 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  html,
+  body {
+    background: white !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .certificate {
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
