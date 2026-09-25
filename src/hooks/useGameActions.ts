@@ -24,6 +24,7 @@ export function useGameActions() {
       graduate: (i: Parameters<typeof A.graduate>[2] = {}) => run(A.graduate, i),
       reconcile: () => run(A.reconcileAction, undefined),
       setShopOverride: (i: Parameters<typeof A.setShopOverride>[2]) => run(A.setShopOverride, i),
+      updateProfile: (i: Parameters<typeof A.updateProfile>[2]) => run(A.updateProfile, i),
       adminAdjust: (i: Parameters<typeof A.adminAdjust>[2]) => run(A.adminAdjust, i),
       resetProgress: () => run(A.resetProgress, undefined),
       saveCount: (nodeId: string, count: number) =>

@@ -51,6 +51,17 @@ function sceneOf(item: CelebrationItem, c: Curriculum): Scene {
         sound: 'unlock',
         gradient: 'from-cyan-400 to-blue-600',
       };
+    case 'chapter_unlocked': {
+      const ch = c.chapters.find((x) => x.id === item.chapterId);
+      return {
+        emoji: ch?.icon ?? '🗺️',
+        title: '新的區域出現了！',
+        subtitle: ch ? `第 ${ch.id} 章・${ch.name}\n${ch.description}` : '',
+        sound: 'tada',
+        confetti: 'big',
+        gradient: ch?.theme ?? 'from-cyan-400 to-blue-600',
+      };
+    }
     case 'attendance':
       return { emoji: '🏸', title: `第 ${item.sessionCount} 次練習開始！`, subtitle: reward(item.exp, item.coins), sound: 'coin', gradient: 'from-emerald-400 to-teal-600' };
     case 'milestone':

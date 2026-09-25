@@ -84,6 +84,17 @@ describe('reconcile', () => {
     expect(again.doc).toBe(next.progress);
   });
 
+  it('在還沒到達的章節新增節點：不播「發現新小路」，不洩漏隱藏章節', () => {
+    const s = midCourse(); // 目前在第 2 章
+    const quests = clone(C.quests);
+    quests.push({ ...clone(quests.find((q) => q.id === 'q4_2')!), id: 'q4_2b', order: 25, addedInVersion: 2 });
+    const { r, next } = run(s, withQuests(quests));
+    expect(next.player.curriculumVersion).toBe(2);
+    expect(r.event?.items.some((i) => i.kind === 'discovery') ?? false).toBe(false);
+    expect(r.logs.some((l) => l.type === 'curriculum_updated')).toBe(false);
+    expect(next.progress.byNodeId.q4_2b.status).toBe('locked');
+  });
+
   it('④ 調低門檻：依歷史 bestCount 補發獎牌，且不重複發放', () => {
     let s = midCourse();
     // q2_7 打了 2 拍（銅 3），尚未完成

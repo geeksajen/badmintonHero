@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion';
-import { Backpack, Volume2, VolumeX } from 'lucide-react';
+import { Backpack, Pencil, Volume2, VolumeX } from 'lucide-react';
 import { expToNext } from '../../engine/exp';
 import { weeksLeft } from '../../engine/graduation';
 import { useReadyGame } from '../../hooks/useGameState';
 import { useSound } from '../../hooks/useSound';
 import { CoinCounter } from '../ui/CoinCounter';
 
-export function HeroHeader({ onOpenBag }: { onOpenBag: () => void }) {
+export function HeroHeader({ onOpenBag, onOpenProfile }: { onOpenBag: () => void; onOpenProfile: () => void }) {
   const { player, curriculum } = useReadyGame();
   const { muted, toggleMute } = useSound();
   const need = expToNext(player.level, curriculum.levelCurve, curriculum.maxLevel);
@@ -17,19 +17,24 @@ export function HeroHeader({ onOpenBag }: { onOpenBag: () => void }) {
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-indigo-950/85 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-white backdrop-blur-md sm:px-5">
       <div className="mx-auto flex max-w-3xl items-center gap-3">
-        {/* 頭像 ＋ 等級徽章 */}
-        <div className="relative shrink-0">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-pink-400 text-4xl shadow-lg ring-4 ring-white/30">
+        {/* 頭像 ＋ 等級徽章：點一下可以改名字／換頭像 */}
+        <button type="button" onClick={onOpenProfile} aria-label="修改名字和頭像" className="relative shrink-0">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-pink-400 text-4xl shadow-lg ring-4 ring-white/30">
             {player.avatar}
-          </div>
-          <div className="absolute -bottom-1 -right-2 rounded-full bg-violet-600 px-2 py-0.5 font-game text-sm font-extrabold shadow ring-2 ring-white">
+          </span>
+          <span className="absolute -left-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-white text-violet-700 shadow ring-2 ring-violet-300">
+            <Pencil size={14} strokeWidth={3} />
+          </span>
+          <span className="absolute -bottom-1 -right-2 rounded-full bg-violet-600 px-2 py-0.5 font-game text-sm font-extrabold shadow ring-2 ring-white">
             Lv.{player.level}
-          </div>
-        </div>
+          </span>
+        </button>
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="truncate text-xl font-black">{player.name}</span>
+            <button type="button" onClick={onOpenProfile} className="min-w-0 truncate text-left text-xl font-black">
+              {player.name}
+            </button>
             {title && (
               <span className={`rounded-full px-2.5 py-0.5 text-sm font-bold text-white ${title.color}`}>{title.name}</span>
             )}

@@ -33,6 +33,7 @@ import {
 import { checkGraduation } from './graduation';
 import { reconcile } from './reconcile';
 import { settleNode } from './settle';
+import { newlyRevealedChapters } from './stats';
 import { emptyProgress, fillMissingProgress, unlockAll } from './unlock';
 import { toDateStr } from './util';
 
@@ -308,6 +309,9 @@ export function approveQuest(
   byNodeId = { ...byNodeId, [input.nodeId]: next };
   const active = ctx.curriculum.quests.filter((n) => !n.isRetired);
   const unlocked = unlockAll(active, byNodeId);
+  for (const chapterId of newlyRevealedChapters(ctx.curriculum, byNodeId, unlocked.unlockedIds)) {
+    g.items.push({ kind: 'chapter_unlocked', chapterId });
+  }
   byNodeId = unlocked.byNodeId;
   if (unlocked.unlockedIds.length > 0) g.items.push({ kind: 'node_unlocked', nodeIds: unlocked.unlockedIds });
   if (feedback) g.items.push({ kind: 'coach_note', text: feedback });
@@ -498,6 +502,24 @@ export function setShopOverride(
   }
   const g = startGrants({ ...state.player, shopOverrides: cur });
   return finish(state, ctx, g, prepared(state, ctx));
+}
+
+export const NAME_MAX_LENGTH = 10;
+
+/** 小孩自己改名字／換頭像。純外觀，不寫日誌、不發 lastEvent */
+export function updateProfile(
+  state: GameState,
+  ctx: Ctx,
+  input: { name?: string; avatar?: string },
+): ActionResult {
+  const name = input.name?.trim();
+  if (input.name !== undefined && !name) throw new Error('名字不能空白喔');
+  if (name && [...name].length > NAME_MAX_LENGTH) throw new Error(`名字最多 ${NAME_MAX_LENGTH} 個字`);
+  const avatar = input.avatar?.trim();
+  let player = state.player;
+  if (name && name !== player.name) player = { ...player, name };
+  if (avatar && avatar !== player.avatar) player = { ...player, avatar };
+  return finish(state, ctx, startGrants(player), prepared(state, ctx));
 }
 
 export function adminAdjust(

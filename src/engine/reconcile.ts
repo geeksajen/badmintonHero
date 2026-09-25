@@ -1,6 +1,7 @@
 import type { ActivityLog, CelebrationItem, ChapterId, LiveEvent, Player, QuestProgressDoc } from '../types';
 import { addLog, finishLevelUps, startGrants, type Ctx } from './grant';
 import { settleNode } from './settle';
+import { newlyRevealedChapters, reachedChapter } from './stats';
 import { fillMissingProgress, unlockAll } from './unlock';
 
 export interface ReconcileResult {
@@ -46,15 +47,23 @@ export function reconcile(ctx: Ctx, doc: QuestProgressDoc, player: Player): Reco
   if (g.player !== player) changed = true;
 
   // 5. 重算 DAG（只把 locked 升為 unlocked）
+  const beforeUnlock = byNodeId;
   const unlocked = unlockAll(active, byNodeId);
   if (unlocked.unlockedIds.length > 0) {
     byNodeId = unlocked.byNodeId;
     changed = true;
   }
+  const revealed = newlyRevealedChapters(curriculum, beforeUnlock, unlocked.unlockedIds);
 
-  // 新節點：用「發現」的語氣包裝（spec §12.6）
+  // 新節點：用「發現」的語氣包裝（spec §12.6）。
+  // 只提已到達的章節 —— 還沒到的章節對小孩是隱藏的，不能因為改版而曝光。
+  const reached = reachedChapter(curriculum, { byNodeId, updatedAt: '' });
   const newNodes = active.filter(
-    (n) => (n.addedInVersion ?? 1) > player.curriculumVersion && (n.addedInVersion ?? 1) <= curriculum.version,
+    (n) =>
+      (n.addedInVersion ?? 1) > player.curriculumVersion &&
+      (n.addedInVersion ?? 1) <= curriculum.version &&
+      n.chapterId <= reached &&
+      !revealed.includes(n.chapterId),
   );
   const versionChanged = player.curriculumVersion !== curriculum.version;
   if (!changed && !versionChanged) {
@@ -80,6 +89,7 @@ export function reconcile(ctx: Ctx, doc: QuestProgressDoc, player: Player): Reco
   const items: CelebrationItem[] = [...discovery];
   if (retroMedals > 0) items.push({ kind: 'retro_medals', count: retroMedals });
   items.push(...g.items);
+  for (const chapterId of revealed) items.push({ kind: 'chapter_unlocked', chapterId });
   if (unlocked.unlockedIds.length > 0) items.push({ kind: 'node_unlocked', nodeIds: unlocked.unlockedIds });
 
   const nowIso = ctx.now.toISOString();

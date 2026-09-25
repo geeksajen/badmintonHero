@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { tallyChapter } from '../../engine/stats';
+import { reachedChapter, tallyChapter } from '../../engine/stats';
 import { progOf, useReadyGame } from '../../hooks/useGameState';
 import { markSeenNew, readSeenNew } from '../../lib/seenNew';
 import type { QuestNode } from '../../types';
@@ -9,19 +9,34 @@ import { QuestNodeItem } from './QuestNodeItem';
 
 export function QuestMap({ onOpenNode }: { onOpenNode: (node: QuestNode) => void }) {
   const { curriculum, progress, player } = useReadyGame();
-  const layout = useMemo(() => computeMapLayout(curriculum.chapters, curriculum.quests), [curriculum]);
   const [seenNew, setSeenNew] = useState(readSeenNew);
   const reviewMode = !!player.graduatedAt;
 
-  // 開啟時捲到「目前的冒險前線」（最下面一個可挑戰的節點），只捲一次
+  // 只顯示已到達的章節：還沒走到的章節對小孩完全隱藏（畢業後全部顯示）
+  const lastChapter = curriculum.chapters[curriculum.chapters.length - 1].id;
+  const maxChapter = reviewMode ? lastChapter : reachedChapter(curriculum, progress);
+  const layout = useMemo(
+    () =>
+      computeMapLayout(
+        curriculum.chapters.filter((c) => c.id <= maxChapter),
+        curriculum.quests.filter((q) => q.chapterId <= maxChapter),
+      ),
+    [curriculum, maxChapter],
+  );
+  const hasMore = !reviewMode && maxChapter < lastChapter;
+
+  // 開啟時捲到「目前的冒險前線」：最新章節裡可挑戰的節點（沒有的話就是該章起點）。只捲一次。
   const focusId = useMemo(() => {
+    const byFrontier = (a: { node: QuestNode; y: number }, b: { node: QuestNode; y: number }) =>
+      b.node.chapterId - a.node.chapterId || b.y - a.y;
+    if (reviewMode) return [...layout.nodes].sort((a, b) => a.y - b.y)[0]?.node.id; // 回顧模式：山頂
     const open = layout.nodes.filter((p) => {
       const s = progress.byNodeId[p.node.id]?.status;
       return s === 'unlocked' || s === 'submitted';
     });
-    const target = open.sort((a, b) => b.y - a.y)[0] ?? layout.nodes[layout.nodes.length - 1];
-    return target?.node.id;
-  }, [layout, progress]);
+    const pool = open.length > 0 ? open : layout.nodes.filter((p) => p.node.chapterId === maxChapter);
+    return [...pool].sort(byFrontier)[0]?.node.id;
+  }, [layout, progress, reviewMode, maxChapter]);
   const scrolled = useRef(false);
   useEffect(() => {
     if (scrolled.current || !focusId) return;
@@ -40,6 +55,16 @@ export function QuestMap({ onOpenNode }: { onOpenNode: (node: QuestNode) => void
   const lit = (fromId: string) => reviewMode || progress.byNodeId[fromId]?.status === 'completed';
 
   return (
+    <>
+      {/* 地圖頂端的迷霧：只暗示「前面還有路」，不透露有幾章、叫什麼 */}
+      {hasMore && (
+        <div className="relative mx-auto flex h-40 w-full max-w-3xl flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-600 to-slate-400 text-white">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_60%,rgba(255,255,255,0.35),transparent_35%),radial-gradient(circle_at_75%_40%,rgba(255,255,255,0.3),transparent_30%),radial-gradient(circle_at_50%_90%,rgba(255,255,255,0.4),transparent_40%)]" />
+          <div className="relative text-5xl">☁️ ❓ ☁️</div>
+          <div className="relative mt-1 text-lg font-black drop-shadow">前方的路被雲遮住了…</div>
+          <div className="relative text-base font-bold opacity-90">打倒這一區的魔王就能看見！</div>
+        </div>
+      )}
     <div className="relative mx-auto w-full max-w-3xl overflow-hidden" style={{ height: layout.height }}>
       {/* 章節區域背景 */}
       {layout.bands.map(({ chapter, top, height }) => {
@@ -109,5 +134,6 @@ export function QuestMap({ onOpenNode }: { onOpenNode: (node: QuestNode) => void
         />
       ))}
     </div>
+    </>
   );
 }

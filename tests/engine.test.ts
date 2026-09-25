@@ -8,6 +8,7 @@ import {
   cancelOrder,
   retryQuest,
   submitQuest,
+  updateProfile,
   type GameState,
 } from '../src/engine/actions';
 import { applyExp } from '../src/engine/exp';
@@ -15,6 +16,7 @@ import { computeUnlocked } from '../src/engine/unlock';
 import { settleTiers, tierAmount } from '../src/engine/tiers';
 import { canRedeem, applyRedeem } from '../src/engine/economy';
 import { checkGraduation } from '../src/engine/graduation';
+import { reachedChapter } from '../src/engine/stats';
 import { badminton7yoV1 as C } from '../src/data/curricula/badminton-7yo-v1';
 import type { QuestProgress } from '../src/types';
 import { apply, fresh, makeCtx } from './helpers';
@@ -226,6 +228,45 @@ describe('簽到與里程碑', () => {
     expect(r.player.activeSession!.expGiven).toBe(55);
     expect(r.player.activeSession!.bonusCoins).toBe(20);
     expect(r.session!.bonusExp).toBe(30);
+  });
+});
+
+describe('章節揭露', () => {
+  it('一開始只到第 1 章；打倒第 1 章魔王才揭露第 2 章並播「新的區域」', () => {
+    let s = fresh();
+    expect(reachedChapter(C, s.progress)).toBe(1);
+    for (const [id, n] of [['q1_1', 5], ['q1_2', 3], ['q1_3', 5], ['q1_4', 3], ['q1_5', 3]] as [string, number][]) {
+      s = approve(s, id, n);
+    }
+    expect(reachedChapter(C, s.progress)).toBe(1);
+    const r = approveQuest(s, makeCtx(), { nodeId: 'q1_6', count: 5 });
+    expect(reachedChapter(C, r.progress)).toBe(2);
+    const kinds = r.player.lastEvent!.items.map((i) => i.kind);
+    expect(kinds).toContain('chapter_unlocked');
+    expect(kinds.indexOf('chapter_unlocked')).toBeLessThan(kinds.indexOf('node_unlocked'));
+    expect(r.player.lastEvent!.items.find((i) => i.kind === 'chapter_unlocked')).toEqual({ kind: 'chapter_unlocked', chapterId: 2 });
+  });
+
+  it('同一章內解鎖新節點不會重複播「新的區域」', () => {
+    const s = fresh();
+    const r = approveQuest(s, makeCtx(), { nodeId: 'q1_1', count: 5 });
+    expect(r.player.lastEvent!.items.some((i) => i.kind === 'chapter_unlocked')).toBe(false);
+  });
+});
+
+describe('updateProfile', () => {
+  it('可改名字與頭像；空白、過長會被擋；不寫日誌、不影響數值', () => {
+    const s = fresh();
+    const r = updateProfile(s, makeCtx(), { name: '  小羽  ', avatar: '👧' });
+    expect(r.player.name).toBe('小羽');
+    expect(r.player.avatar).toBe('👧');
+    expect(r.logs).toEqual([]);
+    expect(r.player.lastEvent).toBeUndefined();
+    expect(r.player.totalExp).toBe(s.player.totalExp);
+    expect(() => updateProfile(s, makeCtx(), { name: '   ' })).toThrow();
+    expect(() => updateProfile(s, makeCtx(), { name: '一二三四五六七八九十十一' })).toThrow();
+    // 沒有變化 → 不寫入
+    expect(updateProfile(s, makeCtx(), { name: s.player.name }).playerChanged).toBe(false);
   });
 });
 

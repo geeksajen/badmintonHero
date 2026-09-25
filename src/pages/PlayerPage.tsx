@@ -5,6 +5,7 @@ import { AdventureLog } from '../components/player/AdventureLog';
 import { CelebrationModal } from '../components/player/CelebrationModal';
 import { EquipmentDrawer } from '../components/player/EquipmentDrawer';
 import { HeroHeader } from '../components/player/HeroHeader';
+import { ProfileEditor } from '../components/player/ProfileEditor';
 import { QuestDetailSheet } from '../components/player/QuestDetailSheet';
 import { QuestMap } from '../components/player/QuestMap';
 import { RewardShop } from '../components/player/RewardShop';
@@ -26,11 +27,12 @@ export function PlayerPage() {
   const [tab, setTab] = useState<Tab>('map');
   const [node, setNode] = useState<QuestNode | null>(null);
   const [bag, setBag] = useState(false);
+  const [profile, setProfile] = useState(false);
   const queue = useCelebrationQueue(playerId, player.lastEvent);
 
   return (
     <div className="min-h-dvh bg-indigo-950 pb-28">
-      <HeroHeader onOpenBag={() => setBag(true)} />
+      <HeroHeader onOpenBag={() => setBag(true)} onOpenProfile={() => setProfile(true)} />
 
       {player.graduatedAt && (
         <Link
@@ -70,6 +72,7 @@ export function PlayerPage() {
 
       <QuestDetailSheet node={node} onClose={() => setNode(null)} />
       <EquipmentDrawer open={bag} onClose={() => setBag(false)} />
+      <ProfileEditor open={profile} onClose={() => setProfile(false)} />
       <CelebrationModal item={queue.current} remaining={queue.remaining} onNext={queue.next} />
     </div>
   );

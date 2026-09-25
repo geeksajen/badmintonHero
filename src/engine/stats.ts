@@ -38,6 +38,41 @@ export function expectedChapter(c: Curriculum, courseStartDate: string, now: Dat
   return ch?.id ?? c.chapters[c.chapters.length - 1].id;
 }
 
+/**
+ * 小孩「已到達」的最遠章節：有任何現役節點不是 locked 的最大章節。
+ * 地圖只顯示 1 ～ 這一章，之後的章節對小孩完全隱藏。
+ */
+export function reachedChapter(c: Curriculum, progress: QuestProgressDoc): ChapterId {
+  let reached: ChapterId = c.chapters[0].id;
+  for (const q of c.quests) {
+    if (q.isRetired) continue;
+    const s = progress.byNodeId[q.id]?.status;
+    if (s && s !== 'locked' && q.chapterId > reached) reached = q.chapterId;
+  }
+  return reached;
+}
+
+/**
+ * 這次解鎖的節點中，哪些章節是「第一次出現」（解鎖前該章所有節點都還是 locked）。
+ * 用來播「新的區域出現了！」。
+ */
+export function newlyRevealedChapters(
+  c: Curriculum,
+  before: QuestProgressDoc['byNodeId'],
+  unlockedIds: string[],
+): ChapterId[] {
+  const chapters = new Set<ChapterId>();
+  for (const id of unlockedIds) {
+    const node = c.quests.find((q) => q.id === id);
+    if (!node) continue;
+    const seenBefore = c.quests.some(
+      (q) => q.chapterId === node.chapterId && !q.isRetired && (before[q.id]?.status ?? 'locked') !== 'locked',
+    );
+    if (!seenBefore) chapters.add(node.chapterId);
+  }
+  return [...chapters].sort((a, b) => a - b);
+}
+
 /** 目前實際進行到的章節：有未完成（可挑戰）現役節點的最早章節 */
 export function currentChapter(c: Curriculum, progress: QuestProgressDoc): ChapterId {
   for (const ch of c.chapters) {

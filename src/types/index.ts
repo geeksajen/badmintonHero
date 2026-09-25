@@ -194,6 +194,7 @@ export type CelebrationItem =
   | { kind: 'title'; titleId: string }
   | { kind: 'level_up'; from: number; to: number }
   | { kind: 'node_unlocked'; nodeIds: string[] }
+  | { kind: 'chapter_unlocked'; chapterId: ChapterId }
   | { kind: 'attendance'; sessionCount: number; exp: number; coins: number }
   | { kind: 'milestone'; label: string; exp: number; coins: number }
   | { kind: 'order_fulfilled'; rewardTitle: string }
