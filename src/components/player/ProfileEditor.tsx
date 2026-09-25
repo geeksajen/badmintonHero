@@ -52,7 +52,7 @@ function EditorBody({ onClose }: { onClose: () => void }) {
           initial={{ scale: 0.6, rotate: -15 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 12 }}
-          className="flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-pink-400 text-7xl shadow-lg ring-4 ring-amber-200"
+          className="toon flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-amber-200 via-pink-300 to-violet-300 text-7xl"
         >
           {avatar}
         </motion.div>
@@ -98,11 +98,11 @@ function EditorBody({ onClose }: { onClose: () => void }) {
                       aria-label={a.label}
                       aria-pressed={selected}
                       className={`flex min-h-[112px] flex-col items-center justify-center gap-1 rounded-3xl border-4 transition ${
-                        selected ? 'border-violet-500 bg-violet-50 shadow-lg' : 'border-slate-200 bg-slate-50'
+                        selected ? 'border-ink bg-yellow-200 shadow-[0_4px_0_#2b2350]' : 'border-slate-200 bg-slate-50'
                       }`}
                     >
                       <span className="text-6xl leading-none">{a.emoji}</span>
-                      <span className={`text-base font-bold ${selected ? 'text-violet-700' : 'text-slate-500'}`}>{a.label}</span>
+                      <span className={`text-base ${selected ? 'text-ink' : 'text-slate-500'}`}>{a.label}</span>
                     </motion.button>
                   );
                 })}

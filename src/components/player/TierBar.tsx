@@ -12,21 +12,21 @@ export function TierBar({ node, prog, count }: { node: QuestNode; prog: QuestPro
         return (
           <div
             key={t}
-            className={`relative flex flex-col items-center rounded-2xl border-4 px-2 py-2 transition ${
+            className={`relative flex flex-col items-center rounded-2xl px-2 py-2 transition ${
               awarded
-                ? 'border-emerald-400 bg-emerald-50'
+                ? 'toon-sm bg-emerald-100'
                 : reachedNow
-                  ? 'border-amber-400 bg-amber-50'
-                  : 'border-slate-200 bg-slate-50'
+                  ? 'toon-sm scale-105 bg-yellow-100'
+                  : 'border-[2.5px] border-dashed border-slate-300 bg-slate-50'
             }`}
           >
-            <span className="text-4xl">{TIER_EMOJI[t]}</span>
+            <span className={`text-4xl ${awarded || reachedNow ? 'animate-float' : 'opacity-50 grayscale'}`}>{TIER_EMOJI[t]}</span>
             <span className="font-game text-2xl font-extrabold tabular-nums">
               {node.tiers[t]}
               <span className="ml-0.5 text-base">{node.unit}</span>
             </span>
             {awarded && (
-              <span className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white shadow">
+              <span className="toon-sm absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-400 text-white">
                 <Check size={20} strokeWidth={4} />
               </span>
             )}

@@ -7,7 +7,7 @@
     font-family: 'Noto Sans TC', system-ui, -apple-system, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
     font-size: 18px; /* spec §8.3：正文最小 18px */
     -webkit-tap-highlight-color: transparent;
-    background: #1e1b4b;
+    background: #7dd3fc;
   }
   body {
     overscroll-behavior-y: none;
@@ -23,6 +23,69 @@
   }
   code {
     @apply rounded bg-slate-100 px-1 font-mono text-[0.85em];
+  }
+}
+
+/* ───────── 小孩畫面的卡通風格（只影響外觀） ───────── */
+@layer components {
+  /* 小孩畫面：圓體字（jf 粉圓），缺字時退回 Noto Sans TC */
+  .kid-theme {
+    font-family: 'Huninn', 'Noto Sans TC', system-ui, -apple-system, 'PingFang TC', sans-serif;
+  }
+
+  /* 卡通厚描邊 ＋ 立體陰影 */
+  .toon {
+    border: 3px solid theme('colors.ink');
+    box-shadow: 0 5px 0 theme('colors.ink');
+  }
+  .toon-sm {
+    border: 2.5px solid theme('colors.ink');
+    box-shadow: 0 3px 0 theme('colors.ink');
+  }
+  .toon-press:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 theme('colors.ink');
+  }
+
+  /* 天空背景：藍天 ＋ 柔和雲朵 */
+  .sky-bg {
+    background-color: #7dd3fc;
+    background-image:
+      radial-gradient(ellipse 120px 40px at 12% 18%, rgba(255, 255, 255, 0.85), transparent 70%),
+      radial-gradient(ellipse 160px 50px at 80% 32%, rgba(255, 255, 255, 0.8), transparent 70%),
+      radial-gradient(ellipse 140px 44px at 30% 62%, rgba(255, 255, 255, 0.7), transparent 70%),
+      radial-gradient(ellipse 180px 56px at 88% 84%, rgba(255, 255, 255, 0.75), transparent 70%),
+      linear-gradient(180deg, #7dd3fc 0%, #a5f3fc 55%, #fef9c3 100%);
+    background-attachment: fixed;
+  }
+
+  /* EXP 條的流動斜紋 */
+  .stripe-fill {
+    background-image: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.4) 0 7px, transparent 7px 14px);
+    background-size: 28px 28px;
+  }
+
+  /* 慶祝畫面背後的旋轉光芒 */
+  .sunburst {
+    background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, 0.55) 0deg 12deg, transparent 12deg 30deg);
+    border-radius: 9999px;
+    mask-image: radial-gradient(circle, black 30%, transparent 70%);
+    -webkit-mask-image: radial-gradient(circle, black 30%, transparent 70%);
+  }
+
+  /* 圓點紋理（疊在漸層背景上的獨立圖層，不能直接改 background，否則會把漸層切成條紋） */
+  .dots {
+    isolation: isolate;
+  }
+  .dots::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: inherit;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.35) 2px, transparent 2.5px);
+    background-size: 18px 18px;
   }
 }
 

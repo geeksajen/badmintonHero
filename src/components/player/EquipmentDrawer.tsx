@@ -12,12 +12,12 @@ export function EquipmentDrawer({ open, onClose }: { open: boolean; onClose: () 
           return (
             <div
               key={e.id}
-              className={`flex flex-col items-center rounded-2xl border-4 p-3 text-center ${
-                owned ? 'border-amber-300 bg-amber-50' : 'border-dashed border-slate-200 bg-slate-50'
+              className={`flex flex-col items-center rounded-3xl p-3 text-center ${
+                owned ? 'toon-sm bg-gradient-to-b from-yellow-100 to-amber-200' : 'border-[3px] border-dashed border-slate-300 bg-slate-50'
               }`}
             >
-              <span className={`text-5xl ${owned ? '' : 'opacity-30 grayscale'}`}>{owned ? e.icon : '❔'}</span>
-              <span className="mt-1 text-lg font-black">{owned ? e.name : '？？？'}</span>
+              <span className={`text-5xl ${owned ? 'animate-float' : 'opacity-30 grayscale'}`}>{owned ? e.icon : '❔'}</span>
+              <span className="mt-1 text-lg text-ink">{owned ? e.name : '？？？'}</span>
               {owned && <span className="text-sm text-slate-500">{e.description}</span>}
             </div>
           );
@@ -31,9 +31,9 @@ export function EquipmentDrawer({ open, onClose }: { open: boolean; onClose: () 
           return (
             <span
               key={t.id}
-              className={`rounded-full px-4 py-2 text-lg font-bold ${
-                owned ? `${t.color} text-white` : 'bg-slate-100 text-slate-300'
-              } ${player.currentTitleId === t.id ? 'ring-4 ring-amber-300' : ''}`}
+              className={`rounded-full px-4 py-2 text-lg ${
+                owned ? `toon-sm ${t.color} text-white` : 'bg-slate-100 text-slate-300'
+              } ${player.currentTitleId === t.id ? 'ring-4 ring-yellow-300 ring-offset-2' : ''}`}
             >
               {owned ? t.name : '？？？'}
             </span>

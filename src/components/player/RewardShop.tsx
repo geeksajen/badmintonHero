@@ -10,6 +10,9 @@ import { CoinCounter } from '../ui/CoinCounter';
 import { ConfirmDialog, Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 
+/** 商品卡片輪流使用的糖果色 */
+const CARD_COLORS = ['bg-pink-200', 'bg-sky-200', 'bg-lime-200', 'bg-yellow-200', 'bg-violet-200', 'bg-orange-200', 'bg-teal-200'];
+
 export function RewardShop() {
   const { player, curriculum } = useReadyGame();
   const actions = useGameActions();
@@ -40,7 +43,7 @@ export function RewardShop() {
     }
   };
 
-  const card = (r: RewardItem) => {
+  const card = (r: RewardItem, i: number) => {
     const check = canRedeem(player, r, now);
     const left = r.stockPerWeek !== undefined ? r.stockPerWeek - redeemedThisWeek(player, r.id, now) : undefined;
     return (
@@ -52,14 +55,18 @@ export function RewardShop() {
           setError(null);
           setPicking(r);
         }}
-        className={`flex min-h-[180px] flex-col items-center justify-between rounded-3xl p-4 text-center shadow-lg transition ${
-          check.ok ? 'bg-white text-slate-800' : 'bg-white/60 text-slate-500 grayscale-[60%]'
+        className={`toon toon-press relative flex min-h-[190px] flex-col items-center justify-between rounded-3xl p-4 text-center text-ink transition ${
+          check.ok ? CARD_COLORS[i % CARD_COLORS.length] : 'bg-slate-100 opacity-80 grayscale-[70%]'
         }`}
       >
-        <span className="text-6xl">{r.icon}</span>
-        <span className="text-lg font-black leading-tight">{r.title}</span>
-        <span className="mt-1 rounded-full bg-amber-400 px-3 py-0.5 text-lg font-black text-amber-950">🪙 {r.cost}</span>
-        {left !== undefined && <span className="mt-1 text-sm font-bold text-slate-500">這週還可以換 {Math.max(0, left)} 次</span>}
+        <span className={`text-6xl drop-shadow-[0_3px_0_rgba(43,35,80,0.25)] ${check.ok ? 'animate-float' : ''}`} style={{ animationDelay: `${-i * 0.7}s` }}>
+          {r.icon}
+        </span>
+        <span className="text-lg leading-tight">{r.title}</span>
+        <span className="toon-sm mt-1 -rotate-3 rounded-full bg-yellow-300 px-3 py-0.5 font-game text-xl font-extrabold text-amber-950">
+          🪙 {r.cost}
+        </span>
+        {left !== undefined && <span className="mt-1 text-sm text-slate-600">這週還可以換 {Math.max(0, left)} 次</span>}
       </motion.button>
     );
   };
@@ -69,9 +76,13 @@ export function RewardShop() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
-      <div className="flex items-center justify-between rounded-3xl bg-gradient-to-r from-amber-300 to-orange-400 px-5 py-4 text-amber-950 shadow-lg">
-        <span className="text-2xl font-black">🏪 勇者商店</span>
-        <CoinCounter value={player.coins} className="text-3xl font-black" />
+      <div className="toon dots relative flex items-center justify-between overflow-hidden rounded-3xl bg-gradient-to-r from-amber-300 via-orange-300 to-pink-300 px-5 py-4 text-ink">
+        <span className="flex items-center gap-2 text-3xl">
+          <span className="animate-wiggle">🏪</span> 勇者商店
+        </span>
+        <span className="toon-sm rounded-full bg-white px-3 py-1">
+          <CoinCounter value={player.coins} className="font-game text-3xl font-extrabold text-amber-950" />
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{normal.map(card)}</div>
@@ -84,18 +95,20 @@ export function RewardShop() {
             key={r.id}
             type="button"
             onClick={() => setPicking(r)}
-            className="w-full rounded-3xl bg-gradient-to-br from-violet-600 to-fuchsia-600 p-5 text-left text-white shadow-xl"
+            className="toon toon-press dots relative w-full overflow-hidden rounded-3xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 p-5 text-left text-white"
           >
-            <div className="flex items-center gap-4">
-              <span className="text-7xl">{r.icon}</span>
+            <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-1/4 animate-shine bg-white/25" />
+            <span aria-hidden className="absolute right-4 top-3 animate-float text-2xl">✨</span>
+            <div className="relative flex items-center gap-4">
+              <span className="animate-wiggle text-7xl drop-shadow-[0_4px_0_rgba(43,35,80,0.35)]">{r.icon}</span>
               <div className="flex-1">
-                <div className="text-2xl font-black">{r.title}</div>
+                <div className="text-2xl">{r.title}</div>
                 <div className="text-base opacity-90">{r.description}</div>
               </div>
             </div>
-            <div className="mt-4 h-7 overflow-hidden rounded-full bg-white/20">
+            <div className="toon-sm relative mt-4 h-9 overflow-hidden rounded-full bg-white/30">
               <motion.div
-                className="flex h-full items-center justify-end rounded-full bg-gradient-to-r from-amber-300 to-yellow-200 pr-3 font-game font-extrabold text-amber-950"
+                className="stripe-fill flex h-full animate-stripes items-center justify-end rounded-full bg-gradient-to-r from-yellow-300 to-amber-300 pr-3 font-game font-extrabold text-amber-950"
                 initial={false}
                 animate={{ width: `${Math.max(pct, 8)}%` }}
               >
@@ -110,8 +123,8 @@ export function RewardShop() {
       })}
 
       {recent.length > 0 && (
-        <div className="rounded-3xl bg-white/90 p-4 text-slate-800 shadow">
-          <div className="mb-2 text-lg font-black">📦 我換過的獎品</div>
+        <div className="toon rounded-3xl bg-white p-4 text-ink">
+          <div className="mb-2 text-xl">📦 我換過的獎品</div>
           <ul className="space-y-1 text-lg">
             {recent.map((o) => (
               <li key={o.id} className="flex items-center justify-between">

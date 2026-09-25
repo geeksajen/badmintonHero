@@ -140,27 +140,35 @@ export function CelebrationModal({
           onClick={onNext}
         >
           <motion.div
-            className={`w-full max-w-md rounded-[2.5rem] bg-gradient-to-br ${scene.gradient} p-1 shadow-2xl`}
+            className="toon kid-theme w-full max-w-md overflow-hidden rounded-[2.5rem] bg-white"
             initial={reduce ? { opacity: 0 } : { scale: 0.5, y: 60, opacity: 0 }}
             animate={reduce ? { opacity: 1 } : { scale: 1, y: 0, opacity: 1 }}
             exit={reduce ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
             transition={{ type: 'spring', damping: 14, stiffness: 220 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex flex-col items-center gap-3 rounded-[2.3rem] bg-white/95 px-6 py-8 text-center">
+            {/* 上半部：主題色 ＋ 旋轉光芒 ＋ 大圖示 */}
+            <div className={`relative flex h-52 items-center justify-center overflow-hidden bg-gradient-to-br ${scene.gradient}`}>
+              <div aria-hidden className="sunburst absolute h-[30rem] w-[30rem] animate-spin-slow" />
+              <span aria-hidden className="absolute left-6 top-5 animate-float text-3xl">✨</span>
+              <span aria-hidden className="absolute bottom-6 right-8 animate-float text-2xl [animation-delay:-1.5s]">⭐</span>
+              <span aria-hidden className="absolute right-10 top-8 animate-float text-xl [animation-delay:-2.5s]">✨</span>
               <motion.div
-                className="text-[7rem] leading-none"
+                className="relative text-[7.5rem] leading-none drop-shadow-[0_6px_0_rgba(43,35,80,0.35)]"
                 initial={reduce ? false : scene.flip ? { rotateY: 540, scale: 0.3 } : { scale: 0.3, rotate: -20 }}
                 animate={{ rotateY: 0, scale: 1, rotate: 0 }}
                 transition={{ duration: 0.9, type: 'spring', damping: 10 }}
               >
                 {scene.emoji}
               </motion.div>
-              <div className="font-game text-4xl font-extrabold leading-tight text-slate-900">{scene.title}</div>
+            </div>
+            {/* 下半部：文字 ＋ 按鈕 */}
+            <div className="flex flex-col items-center gap-2 border-t-[3px] border-ink px-6 pb-7 pt-5 text-center">
+              <div className="font-game text-4xl font-extrabold leading-tight text-ink">{scene.title}</div>
               {scene.subtitle && (
-                <div className="whitespace-pre-line text-2xl font-bold leading-snug text-slate-600">{scene.subtitle}</div>
+                <div className="whitespace-pre-line text-2xl leading-snug text-slate-600">{scene.subtitle}</div>
               )}
-              <Button size="lg" variant="gold" block className="mt-3" onClick={onNext} sound={false}>
+              <Button size="lg" variant="gold" block className="toon mt-3" onClick={onNext} sound={false}>
                 好耶！{remaining > 1 ? `（還有 ${remaining - 1} 個）` : ''}
               </Button>
             </div>

@@ -105,37 +105,43 @@ function SheetBody({ node, onClose }: { node: QuestNode; onClose: () => void }) 
   return (
     <div className="space-y-5">
       <div>
-        <div className="mb-1 inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-base font-bold text-slate-600">
-          {chapter?.icon} {chapter?.name}
-          {node.isBoss && <span className="ml-1 text-rose-600">👑 魔王關</span>}
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <span className={`toon-sm inline-flex items-center gap-1 rounded-full bg-gradient-to-r ${chapter?.theme ?? ''} px-3 py-1 text-base text-white`}>
+            {chapter?.icon} {chapter?.name}
+          </span>
+          {node.isBoss && (
+            <span className="toon-sm inline-flex animate-wiggle items-center rounded-full bg-rose-400 px-3 py-1 text-base text-white">
+              👑 魔王關
+            </span>
+          )}
         </div>
-        <h2 className="text-[28px] font-black leading-tight sm:text-4xl">{node.title}</h2>
-        <p className="mt-2 text-xl leading-relaxed text-slate-600">{node.description}</p>
+        <h2 className="text-[28px] leading-tight text-ink sm:text-4xl">{node.title}</h2>
+        <p className="mt-2 rounded-2xl bg-sky-50 px-4 py-3 text-xl leading-relaxed text-slate-700">💬 {node.description}</p>
       </div>
 
       <TierBar node={node} prog={prog} count={count} />
 
       {prog.coachFeedback && (
-        <div className="rounded-2xl bg-violet-50 px-4 py-3 text-lg text-violet-900">
-          <span className="font-black">🗣️ 教練說：</span>
+        <div className="toon-sm relative rounded-2xl bg-violet-100 px-4 py-3 text-lg text-violet-900">
+          <span>🗣️ 教練說：</span>
           {prog.coachFeedback}
         </div>
       )}
 
       {/* 計數區 */}
-      <div className="flex items-center justify-between gap-3 rounded-3xl bg-slate-900 px-4 py-4 text-white">
+      <div className="toon dots relative flex items-center justify-between gap-3 rounded-3xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 px-4 py-4 text-white">
         <div>
-          <div className="text-base font-bold text-white/70">這次</div>
+          <div className="text-base font-bold text-white/80">這次</div>
           <motion.div
             key={count}
             initial={{ scale: 1.3 }}
             animate={{ scale: 1 }}
-            className="font-game text-6xl font-extrabold tabular-nums"
+            className="font-game text-6xl font-extrabold tabular-nums drop-shadow-[0_3px_0_rgba(43,35,80,0.5)]"
           >
             {count}
             <span className="ml-1 text-2xl">{node.unit}</span>
           </motion.div>
-          <div className="text-base font-bold text-white/70">
+          <div className="text-base font-bold text-white/80">
             最好成績 {prog.bestCount} {node.unit}
           </div>
         </div>
@@ -146,7 +152,7 @@ function SheetBody({ node, onClose }: { node: QuestNode; onClose: () => void }) 
               aria-label="減一"
               onClick={() => change(-1)}
               disabled={count === 0}
-              className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 disabled:opacity-30"
+              className="toon-sm flex h-16 w-16 items-center justify-center rounded-2xl bg-white/90 text-ink disabled:opacity-40"
             >
               <Minus size={30} />
             </button>
@@ -155,8 +161,9 @@ function SheetBody({ node, onClose }: { node: QuestNode; onClose: () => void }) 
               aria-label="加一"
               whileTap={{ scale: 0.88 }}
               onClick={() => change(1)}
-              className="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-gradient-to-br from-lime-300 to-emerald-500 text-emerald-950 shadow-[0_8px_0_#065f46] active:translate-y-1 active:shadow-none"
+              className="relative flex h-28 w-28 flex-col items-center justify-center overflow-hidden rounded-full border-[3px] border-ink bg-gradient-to-br from-lime-200 via-lime-300 to-emerald-500 text-ink shadow-[0_7px_0_#2b2350] active:translate-y-1 active:shadow-[0_3px_0_#2b2350]"
             >
+              <span aria-hidden className="pointer-events-none absolute left-4 top-3 h-5 w-9 -rotate-12 rounded-full bg-white/60" />
               <Plus size={44} strokeWidth={4} />
               <span className="font-game text-2xl font-extrabold">＋1</span>
             </motion.button>
@@ -165,21 +172,21 @@ function SheetBody({ node, onClose }: { node: QuestNode; onClose: () => void }) 
       </div>
 
       {waiting && !reviewMode && (
-        <div className="animate-breathe rounded-2xl bg-amber-100 px-4 py-4 text-center text-xl font-black text-amber-900">
+        <div className="toon-sm animate-breathe rounded-2xl bg-amber-100 px-4 py-4 text-center text-xl text-amber-900">
           ⏳ 等教練確認中…
         </div>
       )}
 
       {canPlay && (
-        <Button variant="gold" size="lg" block disabled={count === 0} onClick={() => setConfirm(true)}>
+        <Button variant="gold" size="lg" block className="toon" disabled={count === 0} onClick={() => setConfirm(true)}>
           🙋 我做到了！
         </Button>
       )}
 
       {/* 獎勵預覽 */}
-      <div className="rounded-2xl bg-amber-50 px-4 py-3">
-        <div className="mb-1 text-base font-black text-amber-900">🎁 還可以拿到</div>
-        <div className="flex flex-wrap items-center gap-3 text-lg font-bold text-amber-950">
+      <div className="rounded-2xl border-[3px] border-dashed border-amber-300 bg-amber-50 px-4 py-3">
+        <div className="mb-1 text-base text-amber-900">🎁 還可以拿到</div>
+        <div className="flex flex-wrap items-center gap-2 text-lg text-amber-950 [&>span]:rounded-full [&>span]:bg-white [&>span]:px-3 [&>span]:py-0.5 [&>span]:shadow-sm">
           {expLeft > 0 || coinsLeft > 0 ? (
             <>
               <span>✨ {expLeft} EXP</span>

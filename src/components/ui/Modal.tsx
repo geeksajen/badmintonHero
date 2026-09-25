@@ -35,8 +35,8 @@ export function Modal({
             aria-modal="true"
             className={
               variant === 'sheet'
-                ? 'relative max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-[2rem] bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-slate-800 shadow-2xl'
-                : 'relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-[2rem] bg-white p-6 text-slate-800 shadow-2xl'
+                ? 'relative max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-[2rem] border-x-[3px] border-t-[3px] border-ink bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-slate-800 shadow-2xl'
+                : 'toon relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-[2rem] bg-white p-6 text-slate-800'
             }
             initial={variant === 'sheet' ? { y: '100%' } : { scale: 0.85, opacity: 0 }}
             animate={variant === 'sheet' ? { y: 0 } : { scale: 1, opacity: 1 }}
@@ -44,6 +44,7 @@ export function Modal({
             transition={{ type: 'spring', damping: 26, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
           >
+            {variant === 'sheet' && <div aria-hidden className="mx-auto -mt-1 mb-3 h-1.5 w-14 rounded-full bg-slate-300" />}
             {(title || closable) && (
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div className="text-2xl font-black">{title}</div>

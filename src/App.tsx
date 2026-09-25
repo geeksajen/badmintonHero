@@ -26,10 +26,12 @@ function Gate({ children }: { children: ReactNode }) {
   if (status === 'needs-login') return <LoginGate />;
   if (status === 'loading') {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-indigo-950 text-white">
-        <div className="animate-bounce text-7xl">🏸</div>
-        <p className="text-xl font-black">冒險準備中…</p>
-        {!online && <p className="text-lg text-white/70">跟教練的連線斷掉了，等一下喔</p>}
+      <div className="kid-theme sky-bg flex min-h-dvh flex-col items-center justify-center gap-4 text-ink">
+        <div className="toon flex h-32 w-32 items-center justify-center rounded-full bg-white">
+          <div className="animate-bounce text-7xl">🏸</div>
+        </div>
+        <p className="toon-sm rounded-full bg-white px-5 py-1 text-2xl">冒險準備中…</p>
+        {!online && <p className="text-lg text-slate-600">跟教練的連線斷掉了，等一下喔</p>}
       </div>
     );
   }
