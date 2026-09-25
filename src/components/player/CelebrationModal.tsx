@@ -35,7 +35,7 @@ function sceneOf(item: CelebrationItem, c: Curriculum): Scene {
       return { emoji: '🏆', title: 'QUEST COMPLETED!', subtitle: `【${nodeTitle(item.nodeId)}】完成了！`, sound: 'tada', confetti: 'big', gradient: 'from-fuchsia-500 to-violet-600' };
     case 'equipment': {
       const e = c.equipments.find((x) => x.id === item.equipmentId);
-      return { emoji: e?.icon ?? '🎁', title: '獲得新裝備！', subtitle: e ? `${e.name}\n${e.description}` : '', sound: 'unlock', gradient: 'from-sky-400 to-indigo-600' };
+      return { emoji: e?.icon ?? '🎁', title: '獲得新寶物！', subtitle: e ? `${e.name}\n${e.description}` : '', sound: 'unlock', gradient: 'from-sky-400 to-indigo-600' };
     }
     case 'title': {
       const t = c.titles.find((x) => x.id === item.titleId);

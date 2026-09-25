@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AdventureLog } from '../components/player/AdventureLog';
 import { CelebrationModal } from '../components/player/CelebrationModal';
-import { EquipmentDrawer } from '../components/player/EquipmentDrawer';
+import { TreasureChest } from '../components/player/TreasureChest';
 import { HeroHeader } from '../components/player/HeroHeader';
 import { ProfileEditor } from '../components/player/ProfileEditor';
 import { QuestDetailSheet } from '../components/player/QuestDetailSheet';
@@ -84,7 +84,7 @@ export function PlayerPage() {
       </nav>
 
       <QuestDetailSheet node={node} onClose={() => setNode(null)} />
-      <EquipmentDrawer open={bag} onClose={() => setBag(false)} />
+      <TreasureChest open={bag} onClose={() => setBag(false)} />
       <ProfileEditor open={profile} onClose={() => setProfile(false)} />
       <CelebrationModal item={queue.current} remaining={queue.remaining} onNext={queue.next} />
     </div>

@@ -66,7 +66,7 @@ export function giveEquipment(g: Grants, ctx: Ctx, ids: string[] | undefined): v
     const eq = ctx.curriculum.equipments.find((e) => e.id === id);
     g.player = { ...g.player, unlockedEquipmentIds: [...g.player.unlockedEquipmentIds, id] };
     g.items.push({ kind: 'equipment', equipmentId: id });
-    addLog(g, ctx, { type: 'equipment_unlocked', message: `獲得裝備 ${eq?.icon ?? '🎁'} ${eq?.name ?? id}` });
+    addLog(g, ctx, { type: 'equipment_unlocked', message: `獲得寶物 ${eq?.icon ?? '🎁'} ${eq?.name ?? id}` });
   }
 }
 

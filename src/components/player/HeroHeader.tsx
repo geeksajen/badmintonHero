@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Backpack, Lock, Pencil, Volume2, VolumeX } from 'lucide-react';
+import { Gift, Lock, Pencil, Volume2, VolumeX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { expToNext } from '../../engine/exp';
 import { weeksLeft } from '../../engine/graduation';
@@ -64,7 +64,7 @@ export function HeroHeader({ onOpenBag, onOpenProfile }: { onOpenBag: () => void
           </div>
         </div>
 
-        {/* 第二列：EXP 條 ＋ 背包 ＋ 靜音 ＋ 家長入口。手機上 EXP 條獨佔一行，狀態標籤移到按鈕左邊 */}
+        {/* 第二列：EXP 條 ＋ 寶物箱 ＋ 靜音 ＋ 家長入口。手機上 EXP 條獨佔一行，狀態標籤移到按鈕左邊 */}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <div className="toon-sm relative h-9 min-w-0 basis-full overflow-hidden rounded-full bg-indigo-100 sm:basis-0 sm:flex-1">
             <motion.div
@@ -82,10 +82,10 @@ export function HeroHeader({ onOpenBag, onOpenProfile }: { onOpenBag: () => void
           <button
             type="button"
             onClick={onOpenBag}
-            aria-label="裝備"
+            aria-label="我的寶物箱"
             className="toon-sm toon-press flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-orange-300 text-ink"
           >
-            <Backpack size={30} strokeWidth={2.5} />
+            <Gift size={30} strokeWidth={2.5} />
           </button>
           <button
             type="button"
