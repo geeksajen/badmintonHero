@@ -17,7 +17,11 @@ interface Scene {
   gradient: string;
   flip?: boolean; // 獎牌翻轉
   speak?: string; // 有值時顯示 🔊，讓不太識字的小孩聽教練的話
+  /** 小事件（階級獎牌、出席、沒有附話的教練獎勵）：播 AUTO_ADVANCE_MS 後自動換下一個，不用點 */
+  auto?: boolean;
 }
+
+const AUTO_ADVANCE_MS = 1500;
 
 function sceneOf(item: CelebrationItem, c: Curriculum): Scene {
   const nodeTitle = (id: string) => c.quests.find((q) => q.id === id)?.title.replace('【魔王】', '') ?? '';
@@ -32,6 +36,7 @@ function sceneOf(item: CelebrationItem, c: Curriculum): Scene {
         gradient: item.tier === 'gold' ? 'from-amber-300 to-yellow-500' : item.tier === 'silver' ? 'from-slate-200 to-slate-400' : 'from-orange-300 to-amber-700',
         flip: true,
         confetti: item.tier === 'gold' ? 'burst' : undefined,
+        auto: true,
       };
     case 'quest_completed':
       return { emoji: '🏆', title: 'QUEST COMPLETED!', subtitle: `【${nodeTitle(item.nodeId)}】完成了！`, sound: 'tada', confetti: 'big', gradient: 'from-fuchsia-500 to-violet-600' };
@@ -65,7 +70,7 @@ function sceneOf(item: CelebrationItem, c: Curriculum): Scene {
       };
     }
     case 'attendance':
-      return { emoji: '🏸', title: `第 ${item.sessionCount} 次練習開始！`, subtitle: reward(item.exp, item.coins), sound: 'coin', gradient: 'from-emerald-400 to-teal-600' };
+      return { emoji: '🏸', title: `第 ${item.sessionCount} 次練習開始！`, subtitle: reward(item.exp, item.coins), sound: 'coin', gradient: 'from-emerald-400 to-teal-600', auto: true };
     case 'milestone':
       return { emoji: '🏅', title: item.label, subtitle: reward(item.exp, item.coins), sound: 'tada', confetti: 'big', gradient: 'from-amber-400 to-rose-500' };
     case 'order_fulfilled':
@@ -73,7 +78,7 @@ function sceneOf(item: CelebrationItem, c: Curriculum): Scene {
     case 'coach_note':
       return { emoji: '🗣️', title: '教練想跟你說', subtitle: item.text, sound: 'tap', gradient: 'from-violet-400 to-indigo-600', speak: `教練想跟你說：${item.text}` };
     case 'bonus':
-      return { emoji: '🎁', title: '教練給你獎勵！', subtitle: [reward(item.exp, item.coins), item.message].filter(Boolean).join('\n'), sound: 'coin', confetti: 'burst', gradient: 'from-yellow-300 to-orange-500', speak: item.message ? `教練給你獎勵！${item.message}` : undefined };
+      return { emoji: '🎁', title: '教練給你獎勵！', subtitle: [reward(item.exp, item.coins), item.message].filter(Boolean).join('\n'), sound: 'coin', confetti: 'burst', gradient: 'from-yellow-300 to-orange-500', speak: item.message ? `教練給你獎勵！${item.message}` : undefined, auto: !item.message };
     case 'discovery': {
       const ch = c.chapters.find((x) => x.id === item.chapterId);
       return { emoji: '🗺️', title: '發現新的小路！', subtitle: `教練在${ch?.name ?? '地圖'}裡發現了 ${item.count} 條新的小路！`, sound: 'reveal', confetti: 'burst', gradient: 'from-emerald-400 to-cyan-600' };
@@ -105,7 +110,7 @@ function fireConfetti(kind: Scene['confetti']) {
 }
 
 /**
- * 慶祝動畫：依佇列一次只播一個（不疊放），點「好耶！」才播下一個。
+ * 慶祝動畫：依佇列一次只播一個（不疊放）。大事件點「好耶！」才播下一個；小事件 1.5 秒後自動換。
  * 背景模糊凍結 → 彩帶 → 音效 → 獎勵內容。prefers-reduced-motion 時關閉彩帶與大幅位移。
  */
 export function CelebrationModal({
@@ -129,6 +134,14 @@ export function CelebrationModal({
     playSound(sound);
     if (!reduce) fireConfetti(confettiKind);
   }, [item, sound, confettiKind, reduce]);
+
+  // 小事件自動換下一個；點「好耶！」提早換也可以（cleanup 會取消計時）
+  const auto = !!scene?.auto;
+  useEffect(() => {
+    if (!item || !auto) return;
+    const t = setTimeout(onNext, AUTO_ADVANCE_MS);
+    return () => clearTimeout(t);
+  }, [item, auto, onNext]);
 
   return (
     <AnimatePresence mode="wait">
@@ -174,6 +187,17 @@ export function CelebrationModal({
               <Button size="lg" variant="gold" block className="toon mt-3" onClick={onNext} sound={false}>
                 好耶！{remaining > 1 ? `（還有 ${remaining - 1} 個）` : ''}
               </Button>
+              {auto && (
+                // 自動換下一個的倒數條（顏色變化在 reduced-motion 下也保留）
+                <div aria-hidden className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                  <motion.div
+                    className="h-full rounded-full bg-amber-400"
+                    initial={{ width: '100%' }}
+                    animate={{ width: '0%' }}
+                    transition={{ duration: AUTO_ADVANCE_MS / 1000, ease: 'linear' }}
+                  />
+                </div>
+              )}
             </div>
           </motion.div>
         </motion.div>

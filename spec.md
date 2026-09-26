@@ -30,7 +30,7 @@
 
 - 線上網址：`https://geeksajen.github.io/badmintonHero/`（家長控制台 `#/admin`）
 - repo：`geeksajen/badmintonHero`，push 到 `main` → GitHub Actions 跑 lint → test → validate → build → 部署
-- 自動化檢查：`npm test` **58 個測試全綠**（engine、reconcile 不變式、快取 TTL、ESLint 護欄、讀取預算）；
+- 自動化檢查：`npm test` **65 個測試全綠**（engine、reconcile 不變式、快取 TTL、ESLint 護欄、讀取預算）；
   `npm run validate` 全部通過（DAG、三階遞增、`order`、總量 3,970 EXP / 1,985 幣、52 次練習模擬）
 - 課程包仍是初版：`QUEST_DATA_VERSION = 1`，`CHANGELOG.md` 只有 v1，`NOTES.md` 尚未填寫
   （已有 Admin【實戰筆記】可自動整理並匯出，見 §7.2）
@@ -69,7 +69,7 @@
 | 慶祝事件補播 | 以 id 去重 | 另加：只補播 30 分鐘內的事件 | 新裝置第一次開啟不播幾天前的舊動畫 |
 | `Player` 額外欄位 | — | `shopOverrides`、`redeemCounter`、`activeSession`、`finalCoachWords`、`*Rev` | 見上 |
 | `QuestProgress` 額外欄位 | — | `unlockedAtSession`、`tierSessions`（解鎖／各階級頒發時的 `sessionCount`） | 實戰筆記：每關花了幾次練習 |
-| `PracticeSession` 額外欄位 | — | `teachNote`（家長教學筆記，小孩看不到）、`sessionNumber` | 實戰筆記 |
+| `PracticeSession` 額外欄位 | — | `teachNote`（家長教學筆記，小孩畫面不顯示）、`sessionNumber`、`expGiven`／`coinsGiven` | 實戰筆記、蓋章月曆 |
 | `RewardItem` | — | `isGrandPrize` | 畢業大禮置底＋儲蓄進度條 |
 | `CelebrationItem` 額外種類 | — | `bonus`、`discovery`、`retro_medals`、`chapter_unlocked` | 教練獎勵、改版發現新路、補發獎牌、新區域出現 |
 | 裝備抽屜 | `EquipmentDrawer` | 改名為「我的寶箱」`TreasureChest` | 見 0.3 |
@@ -90,6 +90,14 @@
   用裝置內建的 Web Speech API（優先 zh-TW 語音、語速 0.9），不需網路、不花額度；不支援的裝置不顯示按鈕。
 - **下一個目標卡**：地圖分頁固定在底部分頁列上方，顯示「👉 下一關：○○ 🥉 5 下」，點一下直接打開那一關。
   順序：已到達章節中地圖最前面的可挑戰節點 → 等教練確認中的節點 → 還沒滿金牌的已完成節點（回頭挑戰）；畢業後不顯示。
+- **慶祝動畫分大小事件**：大事件（完成關卡、升級、新區域、稱號、寶物、里程碑、教練的話…）照樣點「好耶！」才換；
+  小事件（階級獎牌、出席、沒有附話的教練獎勵）播 1.5 秒自動換下一個，卡片下方有倒數條，點一下可提早換。
+- **蓋章月曆**（日誌分頁上半部，文字日誌保留在下面）：練習那天蓋一個章，樣式看當天拿到的最好獎牌
+  （🥇／🥈／🥉，沒拿獎牌是 🏸 練習章）；沒練習的日子不做任何標記（零懲罰）。點章看當天第幾次練習、
+  拿到的獎牌、EXP／金幣小計、教練的話（可朗讀）。「這個月蓋了 N 個章」只增不減。
+  額度：用最近 20 筆練習紀錄（與日誌相同的 `getDocs` ＋ 1 小時快取，快取未命中時 +20 次讀取）；
+  翻到更早的月份才讀一次全部紀錄（半年約 52 次），並依 `sessionsRev` 暫存在記憶體。
+  `PracticeSession` 另存 `expGiven`／`coinsGiven`（舊資料沒有，不顯示）。
 - **＋1 音調隨進度升高**：越接近下一面獎牌 `pop` 音越高，跨過門檻時播 `medal`；新區域／發現新小路播 `reveal`。
 - **實戰筆記**（Admin【筆記】區，Step 8 支援）：見 §7.2。
 - **PWA 自動更新**：新版部署後 Service Worker 立即接手並重新載入；每 30 分鐘及 App 回到前景時檢查更新

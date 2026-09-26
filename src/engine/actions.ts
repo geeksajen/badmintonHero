@@ -130,6 +130,8 @@ function sessionFromActive(player: Player, curriculum: Curriculum): PracticeSess
     coachNote: s.coachNote,
     teachNote: s.teachNote,
     sessionNumber: s.sessionNumber,
+    expGiven: s.expGiven,
+    coinsGiven: s.coinsGiven,
     createdAt: s.createdAt,
   };
 }

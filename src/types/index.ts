@@ -249,6 +249,8 @@ export interface PracticeSession {
   coachNote?: string;
   teachNote?: string; // 家長的教學筆記（不給小孩看）
   sessionNumber?: number;
+  expGiven?: number; // 這次練習所有來源的 EXP 小計（蓋章月曆顯示用；舊資料沒有）
+  coinsGiven?: number;
   createdAt: string;
 }
 

@@ -3,6 +3,7 @@ import { useReadyGame } from '../../hooks/useGameState';
 import { useHistory } from '../../hooks/useHistory';
 import { formatTime, LOG_ICON } from '../../lib/format';
 import type { ActivityType } from '../../types';
+import { StampCalendar } from './StampCalendar';
 
 /** 依事件類型給日誌泡泡不同的糖果色（純外觀） */
 function bubbleColor(type: ActivityType): string {
@@ -30,7 +31,7 @@ function bubbleColor(type: ActivityType): string {
   }
 }
 
-/** 冒險日誌：getDocs limit(20) ＋ 1 小時快取，不監聽（spec §2.2 ③-4） */
+/** 冒險日誌：上面蓋章月曆，下面文字日誌。getDocs limit(20) ＋ 1 小時快取，不監聽（spec §2.2 ③-4） */
 export function AdventureLog() {
   const { player } = useReadyGame();
   const { data, loading, error, refresh } = useHistory('logs', player.logsRev ?? 0);
@@ -38,6 +39,7 @@ export function AdventureLog() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
+      <StampCalendar />
       <div className="toon mb-5 flex items-center justify-between rounded-3xl bg-gradient-to-r from-pink-300 via-rose-300 to-orange-200 py-2 pl-5 pr-2 text-ink">
         <h2 className="flex items-center gap-2 text-3xl">
           <span className="animate-wiggle">📜</span> 冒險日誌
