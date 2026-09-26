@@ -1,16 +1,24 @@
 import { motion } from 'framer-motion';
 import { Minus, Plus } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { tierAmount, tierForCount } from '../../engine/tiers';
+import { TIER_LABEL, tierAmount, tierForCount } from '../../engine/tiers';
 import { useGameActions } from '../../hooks/useGameActions';
 import { progOf, useReadyGame } from '../../hooks/useGameState';
 import { playSound } from '../../lib/sound';
-import { TIER_ORDER, type QuestNode } from '../../types';
+import { TIER_ORDER, type QuestNode, type TierLevel } from '../../types';
 import { Button } from '../ui/Button';
 import { ConfirmDialog, Modal } from '../ui/Modal';
+import { SpeakButton } from './SpeakButton';
 import { TierBar } from './TierBar';
 
 const SAVE_DEBOUNCE_MS = 1500;
+
+/** 朗讀時的目標句：下一面還沒拿到的獎牌要做到幾次 */
+function goalSentence(node: QuestNode, awarded: TierLevel[]): string {
+  const next = TIER_ORDER.find((t) => !awarded.includes(t));
+  if (!next) return '。你已經拿到金牌了，好厲害！';
+  return `。做到 ${node.tiers[next]} ${node.unit}，就能拿到${TIER_LABEL[next]}！`;
+}
 
 /** ＋1 的音調：越接近下一面獎牌越高（0.85 → 1.45），超過金牌後維持最高 */
 function popRate(node: QuestNode, count: number): number {
@@ -125,15 +133,21 @@ function SheetBody({ node, onClose }: { node: QuestNode; onClose: () => void }) 
           )}
         </div>
         <h2 className="text-[28px] leading-tight text-ink sm:text-4xl">{node.title}</h2>
-        <p className="mt-2 rounded-2xl bg-sky-50 px-4 py-3 text-xl leading-relaxed text-slate-700">💬 {node.description}</p>
+        <div className="mt-2 flex items-center gap-2 rounded-2xl bg-sky-50 py-2 pl-4 pr-2">
+          <p className="flex-1 text-xl leading-relaxed text-slate-700">💬 {node.description}</p>
+          <SpeakButton text={`${node.title}。${node.description}${goalSentence(node, prog.tiersAwarded)}`} />
+        </div>
       </div>
 
       <TierBar node={node} prog={prog} count={count} />
 
       {prog.coachFeedback && (
-        <div className="toon-sm relative rounded-2xl bg-violet-100 px-4 py-3 text-lg text-violet-900">
-          <span>🗣️ 教練說：</span>
-          {prog.coachFeedback}
+        <div className="toon-sm relative flex items-center gap-2 rounded-2xl bg-violet-100 py-2 pl-4 pr-2 text-lg text-violet-900">
+          <p className="flex-1">
+            <span>🗣️ 教練說：</span>
+            {prog.coachFeedback}
+          </p>
+          <SpeakButton text={`教練說：${prog.coachFeedback}`} label="念教練的話" />
         </div>
       )}
 

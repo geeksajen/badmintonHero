@@ -5,6 +5,7 @@ import { AdventureLog } from '../components/player/AdventureLog';
 import { CelebrationModal } from '../components/player/CelebrationModal';
 import { TreasureChest } from '../components/player/TreasureChest';
 import { HeroHeader } from '../components/player/HeroHeader';
+import { NextGoalCard } from '../components/player/NextGoalCard';
 import { ProfileEditor } from '../components/player/ProfileEditor';
 import { QuestDetailSheet } from '../components/player/QuestDetailSheet';
 import { QuestMap } from '../components/player/QuestMap';
@@ -31,7 +32,7 @@ export function PlayerPage() {
   const queue = useCelebrationQueue(playerId, player.lastEvent);
 
   return (
-    <div className="kid-theme sky-bg min-h-dvh pb-32 text-ink">
+    <div className={`kid-theme sky-bg min-h-dvh text-ink ${tab === 'map' ? 'pb-56' : 'pb-32'}`}>
       <HeroHeader onOpenBag={() => setBag(true)} onOpenProfile={() => setProfile(true)} />
 
       {player.graduatedAt && (
@@ -47,6 +48,7 @@ export function PlayerPage() {
 
       <main>
         {tab === 'map' && <QuestMap onOpenNode={setNode} />}
+        {tab === 'map' && <NextGoalCard onOpenNode={setNode} />}
         {tab === 'shop' && <RewardShop />}
         {tab === 'log' && <AdventureLog />}
       </main>

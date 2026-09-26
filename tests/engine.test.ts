@@ -16,7 +16,7 @@ import { computeUnlocked } from '../src/engine/unlock';
 import { settleTiers, tierAmount } from '../src/engine/tiers';
 import { canRedeem, applyRedeem } from '../src/engine/economy';
 import { checkGraduation } from '../src/engine/graduation';
-import { reachedChapter } from '../src/engine/stats';
+import { nextGoal, reachedChapter } from '../src/engine/stats';
 import { badminton7yoV1 as C } from '../src/data/curricula/badminton-7yo-v1';
 import type { QuestProgress } from '../src/types';
 import { apply, fresh, makeCtx } from './helpers';
@@ -285,5 +285,36 @@ describe('畢業', () => {
     expect(r.player.lastEvent!.items[0].kind).toBe('graduation');
     // 畢業後不能再挑戰
     expect(() => approveQuest({ player: r.player, progress: r.progress }, later, { nodeId: 'q1_1', count: 5 })).toThrow();
+  });
+});
+
+describe('下一個目標', () => {
+  it('地圖順序最前面的可挑戰節點；平行分支時回報另外還有幾關', () => {
+    let s = fresh();
+    expect(nextGoal(C, s.progress, s.player)).toMatchObject({ kind: 'play', node: { id: 'q1_1' }, others: 0 });
+    s = approve(s, 'q1_1', 5);
+    s = approve(s, 'q1_2', 3);
+    // q1_3 與 q1_4 平行解鎖
+    expect(nextGoal(C, s.progress, s.player)).toMatchObject({ kind: 'play', node: { id: 'q1_3' }, others: 1 });
+  });
+
+  it('可挑戰的都送審了 → 等教練確認', () => {
+    let s = approve(fresh(), 'q1_1', 5);
+    s = apply(s, submitQuest(s, makeCtx(), { nodeId: 'q1_2', count: 1 }));
+    expect(nextGoal(C, s.progress, s.player)).toMatchObject({ kind: 'waiting', node: { id: 'q1_2' } });
+  });
+
+  it('沒有可挑戰也沒有待審 → 回頭挑戰還沒滿金牌的節點', () => {
+    const s = approve(fresh(), 'q1_1', 5);
+    const progress = {
+      ...s.progress,
+      byNodeId: { ...s.progress.byNodeId, q1_2: { ...s.progress.byNodeId.q1_2, status: 'locked' as const } },
+    };
+    expect(nextGoal(C, progress, s.player)).toMatchObject({ kind: 'polish', node: { id: 'q1_1' }, tier: 'silver' });
+  });
+
+  it('畢業後不顯示', () => {
+    const s = fresh();
+    expect(nextGoal(C, s.progress, { ...s.player, graduatedAt: '2026-09-01T00:00:00Z' })).toBeNull();
   });
 });

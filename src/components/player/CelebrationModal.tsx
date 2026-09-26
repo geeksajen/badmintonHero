@@ -6,6 +6,7 @@ import { useReadyGame } from '../../hooks/useGameState';
 import { playSound, type SoundName } from '../../lib/sound';
 import type { CelebrationItem, Curriculum } from '../../types';
 import { Button } from '../ui/Button';
+import { SpeakButton } from './SpeakButton';
 
 interface Scene {
   emoji: string;
@@ -15,6 +16,7 @@ interface Scene {
   confetti?: 'burst' | 'big' | 'school';
   gradient: string;
   flip?: boolean; // 獎牌翻轉
+  speak?: string; // 有值時顯示 🔊，讓不太識字的小孩聽教練的話
 }
 
 function sceneOf(item: CelebrationItem, c: Curriculum): Scene {
@@ -69,9 +71,9 @@ function sceneOf(item: CelebrationItem, c: Curriculum): Scene {
     case 'order_fulfilled':
       return { emoji: '📦', title: '獎品送到囉！', subtitle: `你的「${item.rewardTitle}」到了！`, sound: 'tada', confetti: 'burst', gradient: 'from-orange-400 to-pink-500' };
     case 'coach_note':
-      return { emoji: '🗣️', title: '教練想跟你說', subtitle: item.text, sound: 'tap', gradient: 'from-violet-400 to-indigo-600' };
+      return { emoji: '🗣️', title: '教練想跟你說', subtitle: item.text, sound: 'tap', gradient: 'from-violet-400 to-indigo-600', speak: `教練想跟你說：${item.text}` };
     case 'bonus':
-      return { emoji: '🎁', title: '教練給你獎勵！', subtitle: [reward(item.exp, item.coins), item.message].filter(Boolean).join('\n'), sound: 'coin', confetti: 'burst', gradient: 'from-yellow-300 to-orange-500' };
+      return { emoji: '🎁', title: '教練給你獎勵！', subtitle: [reward(item.exp, item.coins), item.message].filter(Boolean).join('\n'), sound: 'coin', confetti: 'burst', gradient: 'from-yellow-300 to-orange-500', speak: item.message ? `教練給你獎勵！${item.message}` : undefined };
     case 'discovery': {
       const ch = c.chapters.find((x) => x.id === item.chapterId);
       return { emoji: '🗺️', title: '發現新的小路！', subtitle: `教練在${ch?.name ?? '地圖'}裡發現了 ${item.count} 條新的小路！`, sound: 'reveal', confetti: 'burst', gradient: 'from-emerald-400 to-cyan-600' };
@@ -168,6 +170,7 @@ export function CelebrationModal({
               {scene.subtitle && (
                 <div className="whitespace-pre-line text-2xl leading-snug text-slate-600">{scene.subtitle}</div>
               )}
+              {scene.speak && <SpeakButton text={scene.speak} label="念教練的話" />}
               <Button size="lg" variant="gold" block className="toon mt-3" onClick={onNext} sound={false}>
                 好耶！{remaining > 1 ? `（還有 ${remaining - 1} 個）` : ''}
               </Button>

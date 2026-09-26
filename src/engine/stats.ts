@@ -1,5 +1,7 @@
-import type { ChapterId, Curriculum, QuestProgressDoc } from '../types';
+import type { ChapterId, Curriculum, Player, QuestNode, QuestProgressDoc, TierLevel } from '../types';
+import { TIER_ORDER } from '../types';
 import { highestAwarded } from './tiers';
+import { visibleNodes } from './unlock';
 import { courseWeek } from './util';
 
 export interface Tally {
@@ -71,6 +73,36 @@ export function newlyRevealedChapters(
     if (!seenBefore) chapters.add(node.chapterId);
   }
   return [...chapters].sort((a, b) => a - b);
+}
+
+export type NextGoal =
+  | { kind: 'play'; node: QuestNode; others: number } // 可挑戰（others：另外還有幾關也可以打）
+  | { kind: 'waiting'; node: QuestNode } // 都送審了，等教練確認
+  | { kind: 'polish'; node: QuestNode; tier: TierLevel }; // 全部過了，回頭拿更高的獎牌
+
+/**
+ * 地圖上的「下一個目標」：已到達章節中，地圖順序最前面的可挑戰節點。
+ * 沒有可挑戰的 → 等教練確認中的節點 → 還沒滿金牌的已完成節點。畢業後不顯示。
+ */
+export function nextGoal(c: Curriculum, progress: QuestProgressDoc, player: Player): NextGoal | null {
+  if (player.graduatedAt) return null;
+  const reached = reachedChapter(c, progress);
+  const nodes = visibleNodes(c.quests).filter((n) => n.chapterId <= reached);
+  const prog = (n: QuestNode) => progress.byNodeId[n.id];
+
+  const playable = nodes.filter((n) => prog(n)?.status === 'unlocked' && !prog(n)?.submittedAt);
+  if (playable.length > 0) return { kind: 'play', node: playable[0], others: playable.length - 1 };
+
+  const waiting = nodes.find((n) => prog(n)?.submittedAt);
+  if (waiting) return { kind: 'waiting', node: waiting };
+
+  for (const n of nodes) {
+    const p = prog(n);
+    if (p?.status !== 'completed') continue;
+    const tier = TIER_ORDER.find((t) => !p.tiersAwarded.includes(t));
+    if (tier) return { kind: 'polish', node: n, tier };
+  }
+  return null;
 }
 
 /** 目前實際進行到的章節：有未完成（可挑戰）現役節點的最早章節 */
