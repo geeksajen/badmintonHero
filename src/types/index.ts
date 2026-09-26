@@ -143,6 +143,8 @@ export interface ActiveSessionSummary {
   bonusExp: number; // 其中教練額外給的
   bonusCoins: number;
   coachNote?: string;
+  teachNote?: string; // 家長的教學筆記（只有家長看得到），匯出實戰筆記用
+  sessionNumber?: number; // 第幾次練習（舊資料沒有，匯出時依日期推算）
   durationMin?: number;
   createdAt: string;
 }
@@ -224,6 +226,10 @@ export interface QuestProgress {
   submittedAt?: string;
   completedAt?: string;
   coachFeedback?: string;
+  /** 解鎖時的 player.sessionCount（實戰筆記：這關花了幾次練習）。舊資料沒有，匯出時由前置節點推算 */
+  unlockedAtSession?: number;
+  /** 各階級頒發時的 player.sessionCount */
+  tierSessions?: Partial<Record<TierLevel, number>>;
 }
 
 /** 34 節點合併成「一份」Firestore 文件：players/{playerId}/state/questProgress */
@@ -241,6 +247,8 @@ export interface PracticeSession {
   bonusExp: number;
   bonusCoins: number;
   coachNote?: string;
+  teachNote?: string; // 家長的教學筆記（不給小孩看）
+  sessionNumber?: number;
   createdAt: string;
 }
 

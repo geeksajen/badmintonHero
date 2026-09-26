@@ -18,6 +18,7 @@ export function useGameActions() {
       retryQuest: (i: Parameters<typeof A.retryQuest>[2]) => run(A.retryQuest, i),
       grantBonus: (i: Parameters<typeof A.grantBonus>[2]) => run(A.grantBonus, i),
       sendCoachNote: (i: Parameters<typeof A.sendCoachNote>[2]) => run(A.sendCoachNote, i),
+      saveTeachNote: (i: Parameters<typeof A.saveTeachNote>[2]) => run(A.saveTeachNote, i),
       redeemReward: (i: Parameters<typeof A.redeemReward>[2]) => run(A.redeemReward, i),
       fulfillOrder: (i: Parameters<typeof A.fulfillOrder>[2]) => run(A.fulfillOrder, i),
       cancelOrder: (i: Parameters<typeof A.cancelOrder>[2]) => run(A.cancelOrder, i),
@@ -34,6 +35,7 @@ export function useGameActions() {
         store ? store.fetchSessions(playerId, rev, force) : Promise.resolve([]),
       fetchOrders: (rev: number, force?: boolean) =>
         store ? store.fetchOrders(playerId, rev, force) : Promise.resolve([]),
+      fetchAllSessions: () => (store ? store.fetchAllSessions(playerId) : Promise.resolve([])),
       signOut: () => (store ? store.auth.signOut() : Promise.resolve()),
     };
   }, [store, playerId]);

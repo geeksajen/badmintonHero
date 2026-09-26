@@ -21,7 +21,7 @@ const TABS: { id: Tab; label: string; emoji: string; color: string }[] = [
   { id: 'log', label: '日誌', emoji: '📜', color: 'bg-pink-300' },
 ];
 
-/** 小孩視角（iPad 優先）。注意：這個畫面不得有任何指向 Admin 的連結（spec §8.2）。 */
+/** 小孩視角（iPad 優先）。Admin 入口只能是 Header 上不顯眼的 🔒（仍需 PIN），不得再加其他連結（spec §8.2）。 */
 export function PlayerPage() {
   const { player, playerId } = useReadyGame();
   const [tab, setTab] = useState<Tab>('map');

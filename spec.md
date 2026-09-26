@@ -1,6 +1,11 @@
-# Badminton Hero Quest（羽球勇者冒險記）— 實作規格 v5
+# Badminton Hero Quest（羽球勇者冒險記）— 實作規格 v5.1
 
-> **v5 變更摘要（本次）**：新增 **§12「關卡表是活的 —— 中期擴充與課程複用」** ——
+> **v5.1 變更摘要（本次，2026-09-26）**：**規格已實作完成並上線使用中**。
+> 新增 **§0「實作狀態」**（各區塊完成度、實作與規格的差異、規格外新增的功能）；
+> §2.2① base path 改為實際的 `/badmintonHero/`；§8.2 改為允許 Player 畫面有一個不顯眼的家長入口；
+> §9 專案結構依實際檔案更新；§11 各 Step 標註完成狀態；§13 由「Start Instruction」改為「下一步」。
+>
+> v5 變更：新增 **§12「關卡表是活的 —— 中期擴充與課程複用」** ——
 > 明訂關卡表**預期會在課程進行中修改**（作者無正式教學經驗，需邊做邊調），
 > 定義三條不變式（只增不減）、id/`order` 脫鉤規則、五種改動的標準做法、
 > `reconcile()` 校正演算法、改版時的 UI 呈現規則、以及課程包複用給下一個小孩的方式。
@@ -16,6 +21,75 @@
 > v3 變更：課程週期定為 6 個月、34 節點、銅銀金三階、出席制 EXP、等級上限 25、畢業機制。
 > v2 變更：技術棧定案、型別重構、雙向核可流程、兌換訂單、Admin 保護、部署里程碑。
 > v1 原稿保留於 `spec.v1.backup.md`。
+
+---
+
+## 0. 實作狀態（2026-09-26）
+
+**§11 的 Step 0～7 已全部完成，已部署到 GitHub Pages 並實際使用中。目前處於 Step 8（真人測試與數值微調）。**
+
+- 線上網址：`https://geeksajen.github.io/badmintonHero/`（家長控制台 `#/admin`）
+- repo：`geeksajen/badmintonHero`，push 到 `main` → GitHub Actions 跑 lint → test → validate → build → 部署
+- 自動化檢查：`npm test` **58 個測試全綠**（engine、reconcile 不變式、快取 TTL、ESLint 護欄、讀取預算）；
+  `npm run validate` 全部通過（DAG、三階遞增、`order`、總量 3,970 EXP / 1,985 幣、52 次練習模擬）
+- 課程包仍是初版：`QUEST_DATA_VERSION = 1`，`CHANGELOG.md` 只有 v1，`NOTES.md` 尚未填寫
+  （已有 Admin【實戰筆記】可自動整理並匯出，見 §7.2）
+
+### 0.1 完成度一覽
+
+| 區塊 | 狀態 | 備註 |
+|---|---|---|
+| §3 資料模型 | ✅ | 另加欄位，見 0.2 |
+| §4 數值／§5 關卡表（34 節點） | ✅ | 依規格原值，尚未依實戰調整 |
+| §6 核心流程（簽到、雙向核可、DAG、階級、升級、兌換、畢業） | ✅ | 全在 `src/engine/*` 純函式 |
+| §7.1 Player View | ✅ | 另有規格外新增，見 0.3 |
+| §7.2 Admin View | ✅ | 含【重新結算】、商店臨時上下架／改價 |
+| §8 UX 規則（零懲罰、PIN、觸控、音訊、reduced-motion、離線提示、PWA） | ✅ | §8.2 已修訂 |
+| §2.2 額度防護（2 個 `onSnapshot`、單一進度文件、快取、transaction、計數器、ESLint） | ✅ | 讀取預算測試：一次完整練習單一裝置約 79 次讀取（目標 < 100） |
+| §10 Firestore 規則／資料結構 | ✅ | |
+| §12 活關卡表（`order`、退役、`reconcile()`、NEW 標記、課程包） | ✅ 機制完成 | 尚未真正改過一次關卡表 |
+| Firebase Console 每日用量告警 | ❓ | 屬手動設定，請自行確認已設 |
+| 音效 | ✅ 合成 | `scripts/gen-assets.mjs` 合成 8 個 `.wav`（FM 鐘聲、銅管和弦、濾波噪音、殘響），無版權問題；要換錄製音效只需放同名檔 |
+| Step 8 支援：實戰筆記 | ✅ | 見 §7.2 |
+
+### 0.2 實作與規格的差異（實作時的決定）
+
+| 項目 | 規格 | 實作 | 原因 |
+|---|---|---|---|
+| GitHub Pages base path | `/badminton_game/` | `/badmintonHero/`（可用 `BASE_PATH` 覆寫） | 與實際 repo 名稱一致 |
+| 三階獎勵切分 | 各階 `Math.round` | 金牌 = 總額 − 銅 − 銀 | 各自取整會讓總量對不上 §4.4 |
+| 已完成節點回頭挑戰銀／金 | — | `status` 維持 `completed`，只設 `submittedAt` 表示待審 | 不變式 3：status 永不回退 |
+| `stockPerWeek` | — | 本週兌換次數存在 `player.redeemCounter` | 同一 transaction 內檢查，0 額外讀取 |
+| 今日練習小計 | — | `player.activeSession` | 更新練習紀錄不需先讀 session 文件 |
+| 快取失效 | TTL 1 小時 | TTL ＋ `logsRev`／`ordersRev`／`sessionsRev` | 否則另一台裝置的寫入要等 1 小時才看得到 |
+| 離線持久化 API | `enableIndexedDbPersistence` | `persistentLocalCache` | 前者在 Firebase v10+ 已棄用 |
+| 離線時的核可 | `runTransaction` | 離線改用 `writeBatch` 排隊，恢復後送出 | transaction 需要連線 |
+| `onSnapshot` 位置 | 只出現在 `GameProvider` | 呼叫實作在 `firebaseAdapter`，訂閱只由 `GameProvider` 發起 | 同時滿足「元件不得 import firestore」 |
+| 音效 | 6 個 `.mp3` | 8 個合成 `.wav`（多了 `pop`、`reveal`） | 無版權素材；見 §8.4 |
+| 慶祝事件補播 | 以 id 去重 | 另加：只補播 30 分鐘內的事件 | 新裝置第一次開啟不播幾天前的舊動畫 |
+| `Player` 額外欄位 | — | `shopOverrides`、`redeemCounter`、`activeSession`、`finalCoachWords`、`*Rev` | 見上 |
+| `QuestProgress` 額外欄位 | — | `unlockedAtSession`、`tierSessions`（解鎖／各階級頒發時的 `sessionCount`） | 實戰筆記：每關花了幾次練習 |
+| `PracticeSession` 額外欄位 | — | `teachNote`（家長教學筆記，小孩看不到）、`sessionNumber` | 實戰筆記 |
+| `RewardItem` | — | `isGrandPrize` | 畢業大禮置底＋儲蓄進度條 |
+| `CelebrationItem` 額外種類 | — | `bonus`、`discovery`、`retro_medals`、`chapter_unlocked` | 教練獎勵、改版發現新路、補發獎牌、新區域出現 |
+| 裝備抽屜 | `EquipmentDrawer` | 改名為「我的寶箱」`TreasureChest` | 見 0.3 |
+| §8.2 Admin 入口 | Player 畫面不得有任何連結 | Header 有一個淡灰色 🔒，仍需 PIN；PIN 畫面有「回到地圖」 | 從主畫面開啟的 PWA 無法輸入網址 |
+
+### 0.3 規格外新增的功能
+
+- **Quest Detail 的 −1 按鈕**：小孩常誤觸 ＋1。
+- **個人資料編輯**：小孩點頭像／名字可改名、從 6 個內建頭像（`src/data/avatars.ts`）挑一個。
+- **章節漸進揭露**：地圖只顯示已到達的章節，之後的章節藏在雲霧後（「打倒這一區的魔王就能看見！」）；
+  打倒魔王時播 `chapter_unlocked` 動畫；地圖開啟時自動捲到目前的冒險前線。
+  `reconcile()` 不會因改版而提前曝光尚未到達的章節。畢業後（回顧模式）全部顯示。
+- **我的寶箱**（取代裝備抽屜）：收集數不顯示分母（只增不減）；未取得的裝備顯示剪影＋「完成哪一關可以得到」，
+  該關目前可挑戰時有「快到手了」跳動徽章；尚未到達章節的裝備顯示為神秘禮物，不透露名稱與章節。
+- **卡通風格改版**：天空背景、圓體字（Huninn）、粗描邊與厚陰影、emoji 底部分頁列、章節招牌、
+  地圖上顯示小孩頭像的「你在這裡」標記、慶祝卡片旋轉光芒。
+- **＋1 音調隨進度升高**：越接近下一面獎牌 `pop` 音越高，跨過門檻時播 `medal`；新區域／發現新小路播 `reveal`。
+- **實戰筆記**（Admin【筆記】區，Step 8 支援）：見 §7.2。
+- **PWA 自動更新**：新版部署後 Service Worker 立即接手並重新載入；每 30 分鐘及 App 回到前景時檢查更新
+  （`src/lib/pwa.ts`）。
 
 ---
 
@@ -71,9 +145,9 @@ Build a Gamified Learning & Progress Tracking Web App named **"Badminton Hero Qu
 
 #### ① 靜態託管
 - 前端必須是 **Vite 建立的 React SPA**，`npm run build` 產出純靜態檔，部署到 **GitHub Pages**。
-- **必須使用 `HashRouter`**（網址形如 `https://<user>.github.io/badminton_game/#/admin`），
+- **必須使用 `HashRouter`**（網址形如 `https://geeksajen.github.io/badmintonHero/#/admin`），
   以避免重新整理或直接開啟子路徑時出現 404。
-- `vite.config.ts` 必須設定 `base: '/badminton_game/'`（與 repo 名稱一致），否則 assets 路徑全錯。
+- `vite.config.ts` 必須設定 `base: '/badmintonHero/'`（與 repo 名稱一致，可用 `BASE_PATH` 覆寫），否則 assets 路徑全錯。
 
 #### ② 絕不使用雲端函式與任何付費功能
 - **禁用 Firebase Cloud Functions**（需 Blaze 付費方案）、Cloud Storage、Hosting 以外的一切付費品項。
@@ -118,7 +192,8 @@ Build a Gamified Learning & Progress Tracking Web App named **"Badminton Hero Qu
    兌換獎勵前**不需要**額外讀取餘額 —— `coins` 已在 `players/{id}` 的即時監聽中。
    但扣款**必須用 `runTransaction`**，確保不會扣成負數、不會因雙裝置同時操作而重複扣。
 
-6. **開啟離線持久化**：`enableIndexedDbPersistence(db)`。
+6. **開啟離線持久化**：`initializeFirestore` 搭配 `persistentLocalCache`
+   （舊 API `enableIndexedDbPersistence(db)` 在 Firebase v10+ 已棄用）。
    球館 Wi-Fi 不穩時可離線操作，連線恢復後自動同步；同時減少重複讀取。
 
 #### ④ 防範無窮迴圈（會在一天內燒光額度的頭號風險）
@@ -879,6 +954,17 @@ function applyExp(player: Player, delta: number): { player: Player; levelsGained
   故此處只做**臨時上下架**與**臨時改價**，覆寫值存在 `players/{id}.shopOverrides`；
   永久調整請改 code 重新部署。
 - **課程進度**：第 N / 26 週、出席 N / 52 次、各章完成度、**是否落後於 §5 節奏表的提醒**。
+- **實戰筆記**（v5.1 新增，支援 Step 8 與 §12.7 的 `NOTES.md`）：
+  - **教學筆記**：寫在最近一次練習上（隔天補寫也可以），存進 `sessions/{id}.teachNote`，小孩看不到。
+  - **卡關提醒**：未拿銅牌的節點，已練次數 ≥ `max(3, estimatedSessions × 2)` 即列出；
+    若 `bestCount` > 0 且低於銅牌門檻，建議直接把門檻調成 `bestCount`（§12.4-④）。分頁列有黃色徽章。
+  - **各章實際 vs 規劃**：規劃次數 ＝ `planWeeks` 週數 × 每週 2 次。
+  - **匯出**：【📋 複製】／【📤 下載／分享】產生 `NOTES.md` 格式的 Markdown
+    （每次練習拿到的獎牌＋教學筆記、各章耗時、各關解鎖／🥉🥈🥇 在第幾次練習、送審次數、卡關點、偏易／偏難提示）。
+  - 額度：畫面上的統計只用已監聽的進度文件（0 額外讀取）；匯出時分頁讀取全部練習紀錄
+    （每頁 `limit(20)`，半年約 52 次讀取，只在按下按鈕時發生）。
+  - 舊資料沒有 `tierSessions`／`unlockedAtSession`：銅牌依 `completedAt` 日期對照練習紀錄推算，
+    解鎖依前置節點的銅牌推算；推不出來的顯示「—」。
 - **【重新結算】按鈕**：手動觸發 `reconcile()`（§12.5）。
   改完關卡表重新部署後按一次，補發所有因門檻調整而應得的獎勵。
 - **危險操作區**（需二次確認）：舉行畢業典禮、重置進度、手動調整等級／金幣。
@@ -896,7 +982,9 @@ function applyExp(player: Player, delta: number): { player: Player; levelsGained
 
 ### 8.2 Admin 入口必須保護
 小孩會亂點。`#/admin` 路由需 **4 位數 PIN 閘門**（`VITE_ADMIN_PIN`，通過後存 `sessionStorage`）。
-Player 畫面**不得有任何指向 Admin 的連結**。
+Player 畫面**只允許一個不顯眼的入口**（Header 靜音鈕旁的淡灰色 🔒），點了仍要輸入 PIN；
+PIN 畫面提供「回到地圖」按鈕，誤入的小孩可以自己離開。
+（v5.1 修訂：原規定「不得有任何連結」，但從主畫面開啟的 PWA 沒有網址列，家長無法進入 Admin。）
 
 > **誠實說明**：因為 §2.2 ② 禁用 Cloud Functions，PIN 完全在前端驗證，
 > 打開 devtools 就能繞過。它的目的是**防止 7 歲小孩誤入**，不是防駭客。
@@ -912,8 +1000,10 @@ Player 畫面**不得有任何指向 Admin 的連結**。
 ### 8.4 音訊
 - Howler 需在**第一次使用者互動**時呼叫 `Howler.ctx.resume()` 解鎖 iOS autoplay。
 - 預設音量 **0.4**；Header 常駐靜音切換鈕，狀態存 `localStorage`。
-- 音效清單：`tada.mp3`（完成）、`levelup.mp3`（升級）、`coin.mp3`（金幣）、
-  `tap.mp3`（點擊）、`unlock.mp3`（解鎖）、`medal.mp3`（階級達成）。
+- 音效清單（v5.1：由 `scripts/gen-assets.mjs` 合成 `.wav`，`npm run gen:assets` 重新產生）：
+  `tada`（完成：小鼓滾奏＋銅管和弦）、`levelup`（升級：銅管琶音）、`coin`（金幣）、
+  `tap`（按鈕）、`pop`（＋1，播放速度 0.85→1.45 隨「距下一面獎牌的進度」升高音調）、
+  `unlock`（解鎖／送出）、`medal`（階級達成：鐘琴琶音）、`reveal`（新區域／發現新小路：和弦漸強＋鐘聲）。
 
 ### 8.5 其他
 - 支援 `prefers-reduced-motion`：關閉彩帶與大幅位移，保留顏色變化。
@@ -921,18 +1011,25 @@ Player 畫面**不得有任何指向 Admin 的連結**。
   已開啟 Firestore 離線持久化（§2.2 ③-6），操作仍可進行，連線恢復後自動同步。
 - PWA：`display: standalone`、鎖定直向、提供 iPad 用 icon 與啟動畫面。
   **`manifest` 的 `start_url` / `scope` 必須含 GitHub Pages 的 base path 與 hash**
-  （例：`/badminton_game/#/`），否則從主畫面開啟會白畫面。
+  （例：`/badmintonHero/#/`），否則從主畫面開啟會白畫面。
+- PWA 新版部署後必須**自動更新**（v5.1）：iPad 從主畫面開啟的 App 常常一開好幾天，不會自己換版。
 
 ---
 
 ## 9. 專案結構
 
+> v5.1：以下已依實際檔案更新（★ 為規格外新增）。
+
 ```
-badminton_game/
+badmintonHero/
 ├─ .github/workflows/
-│  └─ deploy.yml         ← build + 部署到 GitHub Pages（Actions 免費額度內）
+│  └─ deploy.yml         ← lint → test → validate → build → 部署到 GitHub Pages
+├─ scripts/
+│  ├─ validate-data.ts   課程包驗證 ＋ 52 次練習模擬（npm run validate）
+│  └─ gen-assets.mjs     佔位音效與 PWA icon 產生器
+├─ tests/                vitest：engine, reconcile, cache, data, guardrails, session-budget
 ├─ public/
-│  ├─ sounds/            tada, levelup, coin, tap, unlock, medal (.mp3)
+│  ├─ sounds/            tada, levelup, coin, tap, pop, unlock, medal, reveal (.wav 合成)
 │  ├─ icons/             PWA icons
 │  └─ 404.html           ← 保險：轉址回 index.html（HashRouter 下通常用不到）
 ├─ src/
@@ -951,6 +1048,7 @@ badminton_game/
 │  │  │     ├─ attendance.ts   ATTENDANCE_EXP / COINS / MILESTONES
 │  │  │     ├─ CHANGELOG.md    ★ 每次改關卡表的紀錄，見 §12.5
 │  │  │     └─ NOTES.md        ★ 真實教學心得回寫，見 §12.7
+│  │  ├─ avatars.ts      ★ 6 個內建頭像
 │  │  └─ index.ts        依 player.curriculumId 取得課程包
 │  ├─ store/             ← 唯一允許 import firebase/firestore 的目錄（ESLint 強制）
 │  │  ├─ types.ts        GameStore 介面（UI 只依賴這個）
@@ -965,31 +1063,38 @@ badminton_game/
 │  │  ├─ attendance.ts   簽到與里程碑結算
 │  │  ├─ economy.ts      兌換檢查、stockPerWeek
 │  │  ├─ graduation.ts   畢業條件判定
-│  │  └─ reconcile.ts    ★ 關卡表改版後的進度校正，見 §12.5
+│  │  ├─ reconcile.ts    ★ 關卡表改版後的進度校正，見 §12.5
+│  │  ├─ actions.ts      所有會改狀態的動作（簽到／送審／核可／再練／獎勵／兌換／出貨／畢業／改名…）
+│  │  ├─ settle.ts, grant.ts   核可與 reconcile 共用的結算／發獎
+│  │  └─ stats.ts, validate.ts, util.ts   統計（含章節揭露）、課程包驗證
 │  ├─ hooks/
 │  │  ├─ useGameState.ts          讀取 GameProvider 的 context
+│  │  ├─ useGameActions.ts, useHistory.ts
 │  │  ├─ useSound.ts
 │  │  └─ useCelebrationQueue.ts   依 player.lastEvent 排隊播放
 │  ├─ providers/
 │  │  └─ GameProvider.tsx         ★ 全app 唯二的 onSnapshot 在此，deps 必須為 []
 │  ├─ components/
 │  │  ├─ player/         HeroHeader, QuestMap, QuestNodeItem, TierBar,
-│  │  │                  QuestDetailSheet, EquipmentDrawer, RewardShop,
-│  │  │                  AdventureLog, CelebrationModal, Certificate
+│  │  │                  QuestDetailSheet, TreasureChest★, ProfileEditor★, RewardShop,
+│  │  │                  AdventureLog, CelebrationModal, Certificate, mapLayout
 │  │  ├─ admin/          PinGate, SessionCheckIn, PendingList, ActiveQuestList,
 │  │  │                  BonusDispatcher, OrderList, ShopManager,
-│  │  │                  CourseProgress, DangerZone
-│  │  └─ ui/             Button, Card, Modal, ProgressRing, CoinCounter, MedalBadge
-│  ├─ pages/             PlayerPage.tsx, AdminPage.tsx
+│  │  │                  CourseProgress, DangerZone, QuestReviewRow
+│  │  ├─ LoginGate.tsx, DevCounter.tsx
+│  │  └─ ui/             Button, Card, Modal, ProgressRing, CoinCounter, MedalBadge, Toast
+│  ├─ pages/             PlayerPage.tsx, AdminPage.tsx, CertificatePage.tsx
 │  ├─ lib/
-│  │  ├─ firebase.ts             initializeApp / getFirestore / enableIndexedDbPersistence
-│  │  └─ firestore-counter.ts    ★ 開發期讀寫計數器（§2.2 ④）
+│  │  ├─ firebase.ts             initializeApp / getFirestore / persistentLocalCache
+│  │  ├─ firestore-counter.ts    ★ 開發期讀寫計數器（§2.2 ④）
+│  │  ├─ pwa.ts                  ★ PWA 自動更新
+│  │  └─ sound.ts, format.ts, seenNew.ts
 │  ├─ App.tsx            HashRouter 在此
 │  └─ main.tsx
 ├─ firestore.rules       ← §10.3，用 firebase CLI 部署（免費）
 ├─ firestore.indexes.json
 ├─ tailwind.config.ts
-├─ vite.config.ts        base: '/badminton_game/'
+├─ vite.config.ts        base: '/badmintonHero/'
 ├─ .env.example          VITE_FIREBASE_* / VITE_ADMIN_PIN / VITE_STORE_MODE / VITE_PLAYER_ID
 └─ README.md             必須記載：$0 限制、無伺服器驗證、PIN 僅防誤觸
 ```
@@ -1096,7 +1201,11 @@ service cloud.firestore {
 
 ## 11. Development Milestones（請逐步執行）
 
-### Step 0 — 決策定案與資料建模 ⏱️ ~1.5h
+> **v5.1 狀態（2026-09-26）**：Step 0～7 ✅ 已完成並上線；Step 8 🔄 進行中。
+> 自動化驗收（測試、validate、ESLint、grep 護欄、讀取預算）皆由 CI 把關；
+> 需要真實裝置的驗收項目以「實際在用」為準，未逐條留下紀錄。
+
+### Step 0 — 決策定案與資料建模 ⏱️ ~1.5h　✅
 產出 `src/types/index.ts` 與 `src/data/*`
 （5 章節、**34 節點含三階門檻**、10 裝備、6 稱號、8 商品、等級曲線、出席常數）。
 
@@ -1111,8 +1220,8 @@ service cloud.firestore {
 - **（§12）reconcile 回歸測試**：餵入「舊進度 ＋ 新關卡表」，
   斷言 `bestCount`／`tiersAwarded`／`status`／`totalExp`／`coins` **無任何一項下降**
 
-### Step 1 — Core Setup & Store 抽象 ⏱️ ~2.5h
-Vite ＋ TS ＋ Tailwind ＋ **`HashRouter`** ＋ `base: '/badminton_game/'`；
+### Step 1 — Core Setup & Store 抽象 ⏱️ ~2.5h　✅
+Vite ＋ TS ＋ Tailwind ＋ **`HashRouter`** ＋ `base: '/badmintonHero/'`；
 ESLint 兩條硬性規則（§9）；`src/engine/*` 純函式
 （unlock／tiers／exp／attendance／economy／graduation）＋單元測試；
 `src/store/localAdapter.ts` ＋ `cache.ts`。**本步驟完全不碰 Firebase。**
@@ -1126,21 +1235,21 @@ ESLint 兩條硬性規則（§9）；`src/engine/*` 純函式
 - `cache.ts` 的 TTL 行為正確（未過期不重抓、寫入後就地更新）
 - ESLint 能擋下「在元件內 import `firebase/firestore`」
 
-### Step 2 — Player Dashboard & Interactive Map ⏱️ ~5h
+### Step 2 — Player Dashboard & Interactive Map ⏱️ ~5h　✅（另加卡通風格、章節漸進揭露、寶箱、個人資料編輯，見 §0.3）
 HeroHeader（含出席／倒數）、SVG 曲線地圖（5 區域、34 節點、DAG 分支）、
 四種節點狀態＋三階獎牌環、Quest Detail Sheet、裝備抽屜、獎勵商店、冒險日誌。
 
 **驗收**：iPad 直向與手機上都無橫向捲動；所有觸控目標 ≥ 64px；34 節點捲動順暢。
 
-### Step 3 — Admin Control Panel ⏱️ ~3.5h
+### Step 3 — Admin Control Panel ⏱️ ~3.5h　✅
 PIN 閘門、練習簽到、待審清單、快速核可、Bonus Dispatcher、訂單出貨、
 商店管理、課程進度儀表、危險操作區。
 
 **驗收**：同裝置兩個分頁，Admin 簽到／核可後 Player 分頁狀態更新。
 
-### Step 4 — Firebase 接線與跨裝置即時同步 ⏱️ ~3.5h
+### Step 4 — Firebase 接線與跨裝置即時同步 ⏱️ ~3.5h　✅（第 2～4 點由測試自動驗證；第 5 點請不定期看 Console Usage）
 建立 Firebase 專案（**Spark 免費方案，不綁信用卡**）、Email/Password 家庭帳號、
-`firestore.rules` 部署、`lib/firebase.ts`（含 `enableIndexedDbPersistence`）、
+`firestore.rules` 部署、`lib/firebase.ts`（含 `persistentLocalCache`）、
 `lib/firestore-counter.ts`、`firebaseAdapter`、`GameProvider`（**唯二的 `onSnapshot`**）、
 核可流程改用 `runTransaction`（player ＋ questProgress ＋ lastEvent 一次寫入）。
 
@@ -1157,7 +1266,7 @@ PIN 閘門、練習簽到、待審清單、快速核可、Bonus Dispatcher、訂
 > **開發期一律用 `VITE_STORE_MODE=local`**，只有在驗收這一步才切到 Firebase。
 > 帶著 hot-reload 反覆重掛監聽是最容易燒額度的行為。
 
-### Step 5 — GitHub Pages 部署與 PWA ⏱️ ~1.5h
+### Step 5 — GitHub Pages 部署與 PWA ⏱️ ~1.5h　✅（另加 PWA 自動更新）
 `.github/workflows/deploy.yml`（build → 上傳 artifact → 部署 Pages）、
 repo Settings 啟用 Pages（source: GitHub Actions）、
 Firebase 環境變數存成 **repo secrets** 並於 build 時注入、
@@ -1172,17 +1281,17 @@ PWA manifest（`start_url` / `scope` 含 base path 與 hash）、icon、iOS 加�
 > 刻意排在特效之前 —— 先確保「在真實裝置上能用」，再談好不好看。
 > GitHub Pages 的路徑問題只會在真正部署後才現形，不能等到最後才做。
 
-### Step 6 — Gamification FX（Audio & Visual Juice）⏱️ ~3h
+### Step 6 — Gamification FX（Audio & Visual Juice）⏱️ ~3h　✅（音效為合成 `.wav`，v5.1 重做）
 canvas-confetti、獎牌翻轉、升級橫幅、金幣跳動、EXP 條動畫、音效與靜音鈕、
 慶祝動畫排隊（`useCelebrationQueue`）、`prefers-reduced-motion`。
 
 **驗收**：一次核可同時觸發「銀牌＋首次完成＋獲得裝備＋連升兩級＋解鎖新節點」時，
 五段動畫依序播放不重疊。
 
-### Step 7 — 畢業機制與證書 ⏱️ ~1.5h
+### Step 7 — 畢業機制與證書 ⏱️ ~1.5h　✅（程式與測試完成；真正的畢業典禮要等課程結束）
 畢業條件判定、典禮動畫、證書頁（統計數據、獎牌統計、教練寄語）、地圖回顧模式。
 
-### Step 8 — 真人測試與數值微調（進行式）
+### Step 8 — 真人測試與數值微調（進行式）　🔄 進行中（尚未改過關卡表；Admin【實戰筆記】已可記錄教學筆記、提醒卡關、匯出 `NOTES.md`）
 讓小孩實際用 2～3 次練習後，回頭調整 §4 數值與 §5 門檻。
 **特別注意第 3 章**：若前兩次練習發現 `q3_1`～`q3_4` 的銅牌門檻仍太高，立即下調，
 不要等到小孩卡住失去興趣。
@@ -1480,21 +1589,16 @@ export function reconcile(
 
 ---
 
-## 13. Start Instruction
+## 13. 下一步（v5.1，取代原 Start Instruction）
 
-請從 **Step 0** 開始：
-1. 確認第 9 節的專案結構（含 `.github/workflows/`、`firestore.rules`、ESLint 設定）。
-2. 產出 `src/types/index.ts`（§3 全部型別，含 `LiveEvent` / `CelebrationItem` / `QuestProgressDoc`）。
-3. 產出 `src/data/` 下的全部靜態資料（依 §4、§5 的數值與關卡表，**不要自行更動數值**）。
-4. 附上驗證腳本的執行結果（DAG 檢查、三階門檻遞增檢查、總量校驗、52 次練習模擬）。
+Step 0～7 已完成（見 §0）。之後的任何修改仍必須遵守：
 
-**全程必須遵守 §2.2 的 $0 與額度防護硬性限制**：
-GitHub Pages ＋ `HashRouter`、禁用 Cloud Functions、全app 僅 2 個 `onSnapshot`、
-Firestore 只能在 `src/store/` 內使用、所有 `useEffect` 依賴陣列正確。
+- **§2.2 的 $0 與額度防護硬性限制**：GitHub Pages ＋ `HashRouter`、禁用 Cloud Functions、
+  全 app 僅 2 個 `onSnapshot`、Firestore 只能在 `src/store/` 內使用、所有 `useEffect` 依賴陣列正確。
+  新功能若需要新的資料，優先放進既有的兩份被監聽文件或靜態課程包，而不是新增監聽。
+- **§12 的活資料規則**：改關卡表照 §12.4 的做法，`QUEST_DATA_VERSION` +1、寫 `CHANGELOG.md`、
+  `npm run validate` 通過再部署。
+- **§8.1 零懲罰原則**：任何新畫面都不得出現會「變少」的數字、倒數或失敗字樣。
+- 提交前跑 `npm run check`（lint ＋ test ＋ validate ＋ build）。
 
-**同時必須遵守 §12 的活資料結構要求**：
-關卡資料放進 `src/data/curricula/badminton-7yo-v1/`（含 `QUEST_DATA_VERSION`、
-`CHANGELOG.md`、`NOTES.md`），每個節點帶 `order`（各章 10/20/30… 留插入空間），
-地圖排序只看 `order` 不看 id。**§5 的關卡表是初版假設，結構上必須支援中期修改。**
-
-完成後停下來等待確認，再進入 Step 1。
+目前的重點是 **Step 8**：每次練習後在 `NOTES.md` 記一行，依實戰調整 §5 門檻。

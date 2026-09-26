@@ -42,7 +42,7 @@ npm run dev          # http://localhost:5173/badmintonHero/
 | `npm run lint` | ESLint（`exhaustive-deps` 與 Firestore import 限制都是 error） |
 | `npm run build` | 型別檢查 ＋ 產出 `dist/` |
 | `npm run check` | 以上全部 |
-| `npm run gen:assets` | 重新產生佔位音效（`.wav`）與 PWA icon |
+| `npm run gen:assets` | 重新合成音效（`.wav`）與 PWA icon |
 
 ---
 
@@ -114,6 +114,8 @@ npm run dev          # http://localhost:5173/badmintonHero/
 `reconcile()` 保證：**冪等**、`bestCount`／`tiersAwarded`／`status`／`totalExp`／`coins` **只增不減**、不重複發放、退役節點的進度與獎勵保留（見 `tests/reconcile.test.ts`）。
 
 **每次練習後花兩分鐘在 [`NOTES.md`](src/data/curricula/badminton-7yo-v1/NOTES.md) 記一行。**
+家長控制台的【筆記】區可以直接寫教學筆記、看卡關提醒，並一鍵匯出 NOTES.md 格式的實戰紀錄
+（每次練習拿到的獎牌、各章實際 vs 規劃、各關花了幾次練習）。匯出時會讀一次全部練習紀錄（半年約 52 次讀取）。
 
 ### 給下一個孩子
 1. `cp -r src/data/curricula/badminton-7yo-v1 src/data/curricula/<new-pack>`，修改 `index.ts` 的 `CURRICULUM_ID`、`QUEST_DATA_VERSION = 1`
@@ -145,7 +147,7 @@ src/
 ├─ components/player/   HeroHeader, QuestMap, QuestNodeItem, TierBar, QuestDetailSheet,
 │                       EquipmentDrawer, RewardShop, AdventureLog, CelebrationModal, Certificate
 ├─ components/admin/    PinGate, SessionCheckIn, PendingList, ActiveQuestList, BonusDispatcher,
-│                       OrderList, ShopManager, CourseProgress, DangerZone
+│                       OrderList, FieldNotes, ShopManager, CourseProgress, DangerZone
 ├─ pages/               PlayerPage, AdminPage, CertificatePage
 └─ lib/                 firebase.ts, firestore-counter.ts, sound.ts …
 scripts/validate-data.ts   課程包驗證 ＋ 52 次練習模擬
@@ -163,6 +165,6 @@ tests/                     vitest
 | 今日練習小計 | `player.activeSession`，`sessions/{id}` 由它推導後覆寫 | 更新練習紀錄不需先讀 session 文件 |
 | 快取失效 | TTL 1 小時 ＋ `logsRev`/`ordersRev`/`sessionsRev` | 否則另一台裝置的寫入要等 1 小時才看得到（例如家長看不到新訂單） |
 | 「`onSnapshot` 只出現在 GameProvider」 | 呼叫實作在 `firebaseAdapter`，訂閱只在 GameProvider | spec 同時規定元件不得 import `firebase/firestore`，兩者只能這樣同時成立 |
-| 音效 | 產生器產生 `.wav` 佔位音效 | 無版權素材；換成 `.mp3` 只需放同名檔並改 `src/lib/sound.ts` 副檔名 |
+| 音效 | `scripts/gen-assets.mjs` 合成 `.wav`（FM 鐘聲、銅管、濾波噪音、殘響），另加 `pop`（＋1，音調隨進度升高）與 `reveal`（新區域） | 無版權問題；要換成錄製的 `.mp3` 只需放同名檔並改 `src/lib/sound.ts` 副檔名 |
 | 慶祝事件補播 | 30 分鐘內的未播事件才補播 | 新裝置第一次開啟時不會播幾天前的舊動畫 |
 | Quest Detail 的 −1 按鈕 | 新增 | 小孩常誤觸 ＋1 |

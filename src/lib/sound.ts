@@ -4,7 +4,9 @@
  */
 import { Howl, Howler } from 'howler';
 
-export type SoundName = 'tada' | 'levelup' | 'coin' | 'tap' | 'unlock' | 'medal';
+export type SoundName = 'tada' | 'levelup' | 'coin' | 'tap' | 'pop' | 'unlock' | 'medal' | 'reveal';
+
+const ALL_SOUNDS: SoundName[] = ['tada', 'levelup', 'coin', 'tap', 'pop', 'unlock', 'medal', 'reveal'];
 
 const MUTE_KEY = 'bhq:muted';
 const VOLUME = 0.4;
@@ -26,17 +28,20 @@ Howler.mute(muted);
 function howl(name: SoundName): Howl {
   let h = howls.get(name);
   if (!h) {
-    // 音檔由 scripts/gen-assets.mjs 產生（.wav）；要換成 .mp3 只需放同名檔並改這裡的副檔名
+    // 音檔由 scripts/gen-assets.mjs 合成（.wav）；要換成錄製的 .mp3 只需放同名檔並改這裡的副檔名
     h = new Howl({ src: [`${import.meta.env.BASE_URL}sounds/${name}.wav`], volume: 1, preload: true });
     howls.set(name, h);
   }
   return h;
 }
 
-export function playSound(name: SoundName): void {
+/** rate：播放速度＝音高倍率（例如 ＋1 計數越接近下一面獎牌，音調越高） */
+export function playSound(name: SoundName, opts: { rate?: number } = {}): void {
   if (muted) return;
   try {
-    howl(name).play();
+    const h = howl(name);
+    const id = h.play();
+    if (opts.rate !== undefined) h.rate(opts.rate, id);
   } catch {
     /* 音效失敗不影響遊戲 */
   }
@@ -72,7 +77,7 @@ export function unlockAudioOnFirstGesture(): void {
     } catch {
       /* ignore */
     }
-    (['tada', 'levelup', 'coin', 'tap', 'unlock', 'medal'] as SoundName[]).forEach(howl);
+    ALL_SOUNDS.forEach(howl);
     window.removeEventListener('pointerdown', unlock);
     window.removeEventListener('keydown', unlock);
   };

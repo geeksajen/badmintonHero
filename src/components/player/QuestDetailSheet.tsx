@@ -12,6 +12,14 @@ import { TierBar } from './TierBar';
 
 const SAVE_DEBOUNCE_MS = 1500;
 
+/** ＋1 的音調：越接近下一面獎牌越高（0.85 → 1.45），超過金牌後維持最高 */
+function popRate(node: QuestNode, count: number): number {
+  const next = TIER_ORDER.map((t) => node.tiers[t]).find((th) => count < th);
+  if (next === undefined) return 1.45;
+  const prev = TIER_ORDER.map((t) => node.tiers[t]).filter((th) => th <= count).pop() ?? 0;
+  return 0.85 + 0.6 * ((count - prev) / (next - prev));
+}
+
 /**
  * 點節點後的底部面板。
  * ＋1 的次數先存在本地 state（畫面立即反應），1.5 秒 debounce 或關閉面板時才寫入一次（spec §6.2 額度注意）。
@@ -73,7 +81,8 @@ function SheetBody({ node, onClose }: { node: QuestNode; onClose: () => void }) 
     setCount(next);
     dirty.current = true;
     if (delta > 0 && after && after !== before) playSound('medal');
-    else playSound('tap');
+    else if (delta > 0) playSound('pop', { rate: popRate(node, next) });
+    else playSound('tap', { rate: 0.8 });
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(flush, SAVE_DEBOUNCE_MS);
   };

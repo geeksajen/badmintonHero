@@ -7,7 +7,7 @@ import { createInitialState, type ActionResult } from '../engine/actions';
 import { countRead, countWrite } from '../lib/firestore-counter';
 import type { ActivityLog, Player, PracticeSession, QuestProgressDoc, RedemptionOrder } from '../types';
 import { cacheKey, readCache, writeCache } from './cache';
-import { applyResultToCaches, HISTORY_LIMIT, makeCtx, writeCountOf } from './common';
+import { applyResultToCaches, HISTORY_LIMIT, makeCtx, MAX_SESSION_PAGES, writeCountOf } from './common';
 import type { AuthUser, GameAction, GameStore, Unsubscribe } from './types';
 
 const PREFIX = 'bhq:local:';
@@ -170,6 +170,14 @@ export const localAdapter: GameStore = {
       .slice(0, HISTORY_LIMIT);
     countRead(Math.max(1, data.length), 'getDocs:sessions');
     writeCache(key, data, rev);
+    return data;
+  },
+
+  async fetchAllSessions(playerId) {
+    const data = (read<PracticeSession[]>(k(playerId, 'sessions')) ?? [])
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      .slice(0, HISTORY_LIMIT * MAX_SESSION_PAGES);
+    countRead(Math.max(1, data.length), 'getDocs:allSessions');
     return data;
   },
 

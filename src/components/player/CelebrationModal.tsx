@@ -57,7 +57,7 @@ function sceneOf(item: CelebrationItem, c: Curriculum): Scene {
         emoji: ch?.icon ?? '🗺️',
         title: '新的區域出現了！',
         subtitle: ch ? `第 ${ch.id} 章・${ch.name}\n${ch.description}` : '',
-        sound: 'tada',
+        sound: 'reveal',
         confetti: 'big',
         gradient: ch?.theme ?? 'from-cyan-400 to-blue-600',
       };
@@ -74,7 +74,7 @@ function sceneOf(item: CelebrationItem, c: Curriculum): Scene {
       return { emoji: '🎁', title: '教練給你獎勵！', subtitle: [reward(item.exp, item.coins), item.message].filter(Boolean).join('\n'), sound: 'coin', confetti: 'burst', gradient: 'from-yellow-300 to-orange-500' };
     case 'discovery': {
       const ch = c.chapters.find((x) => x.id === item.chapterId);
-      return { emoji: '🗺️', title: '發現新的小路！', subtitle: `教練在${ch?.name ?? '地圖'}裡發現了 ${item.count} 條新的小路！`, sound: 'unlock', confetti: 'burst', gradient: 'from-emerald-400 to-cyan-600' };
+      return { emoji: '🗺️', title: '發現新的小路！', subtitle: `教練在${ch?.name ?? '地圖'}裡發現了 ${item.count} 條新的小路！`, sound: 'reveal', confetti: 'burst', gradient: 'from-emerald-400 to-cyan-600' };
     }
     case 'retro_medals':
       return { emoji: '🎁', title: '驚喜！', subtitle: `而且你之前的成績，剛好達成了 ${item.count} 個新獎牌！`, sound: 'medal', confetti: 'burst', gradient: 'from-amber-300 to-orange-500' };

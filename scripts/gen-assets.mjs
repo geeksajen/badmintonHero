@@ -1,6 +1,7 @@
-// Generates placeholder sound effects (.wav) and PWA icons (.png / .svg) with zero dependencies.
+// Generates the game's sound effects (.wav) and PWA icons (.png / .svg) with zero dependencies.
 // Usage: npm run gen:assets   (outputs to public/sounds and public/icons)
-// Replace any file with a real asset of the same name at any time.
+// Sounds are synthesized (FM bells, brass-like fanfare, filtered noise, small reverb), so there is
+// no licensing to worry about. Replace any file with a recorded asset of the same name at any time.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,11 +14,12 @@ mkdirSync(SOUNDS, { recursive: true });
 mkdirSync(ICONS, { recursive: true });
 
 // ---------------------------------------------------------------- sounds
-const RATE = 22050;
+const RATE = 32000;
+const TAU = 2 * Math.PI;
 
 function wav(samples) {
   const data = Buffer.alloc(samples.length * 2);
-  samples.forEach((s, i) => data.writeInt16LE(Math.max(-1, Math.min(1, s)) * 32767, i * 2));
+  samples.forEach((s, i) => data.writeInt16LE(Math.round(Math.max(-1, Math.min(1, s)) * 32767), i * 2));
   const h = Buffer.alloc(44);
   h.write('RIFF', 0);
   h.writeUInt32LE(36 + data.length, 4);
@@ -35,54 +37,219 @@ function wav(samples) {
   return Buffer.concat([h, data]);
 }
 
-const NOTE = { C5: 523.25, E5: 659.25, G5: 783.99, C6: 1046.5, E6: 1318.5, G6: 1568, B5: 987.77, G4: 392 };
+/** MIDI note number → Hz (69 = A4, 72 = C5, 84 = C6, 96 = C7) */
+const midi = (m) => 440 * 2 ** ((m - 69) / 12);
 
-/** notes: [{ f, start, dur, type, vol }] ; f may be a function of t for sweeps */
-function render(total, notes) {
-  const out = new Float32Array(Math.ceil(total * RATE));
-  for (const n of notes) {
-    const s0 = Math.floor(n.start * RATE);
-    const len = Math.floor(n.dur * RATE);
-    let phase = 0;
-    for (let i = 0; i < len && s0 + i < out.length; i++) {
-      const t = i / RATE;
-      const f = typeof n.f === 'function' ? n.f(t / n.dur) : n.f;
-      phase += (2 * Math.PI * f) / RATE;
-      const attack = Math.min(1, t / 0.008);
-      const env = attack * Math.exp((-t * (n.decay ?? 6)) / n.dur);
-      let v = Math.sin(phase);
-      if (n.type === 'square') v = Math.sign(v) * 0.6;
-      if (n.type === 'bell') v = Math.sin(phase) * 0.7 + Math.sin(phase * 2.01) * 0.2 + Math.sin(phase * 3.02) * 0.1;
-      out[s0 + i] += v * env * (n.vol ?? 0.5);
+/** Deterministic noise so regenerating gives identical files */
+let seed = 1;
+const rand = () => {
+  seed = (seed * 1664525 + 1013904223) >>> 0;
+  return seed / 2 ** 31 - 1;
+};
+
+/**
+ * Amplitude envelope: linear attack, then exponential decay (time constant `decay`, or sustain if null),
+ * and a linear release over the last `release` seconds.
+ */
+function env(t, dur, { attack = 0.005, decay = null, release = 0.03 }) {
+  let a = t < attack ? t / attack : 1;
+  if (decay !== null && t >= attack) a *= Math.exp(-(t - attack) / decay);
+  const r = dur - t;
+  if (r < release) a *= Math.max(0, r / release);
+  return a;
+}
+
+/** Brass-like additive tone (1/k harmonics, darker overall) */
+const BRASS = Array.from({ length: 10 }, (_, i) => (1 / (i + 1)) * 0.74 ** i);
+const BRASS_NORM = BRASS.reduce((s, x) => s + x, 0);
+
+/**
+ * tone({ start, dur, freq, wave, vol, attack, decay, release, glide, vibrato, ratio, index, detune })
+ * wave: sine | tri | square | brass | bell (FM, ratio/index)
+ * glide: (progress 0..1) => frequency multiplier
+ */
+function tone(out, o) {
+  const s0 = Math.floor(o.start * RATE);
+  const len = Math.floor(o.dur * RATE);
+  const vol = o.vol ?? 0.3;
+  let phase = 0;
+  for (let i = 0; i < len && s0 + i < out.length; i++) {
+    const t = i / RATE;
+    let f = o.freq * (o.glide ? o.glide(t / o.dur) : 1) * 2 ** ((o.detune ?? 0) / 1200);
+    if (o.vibrato && t > 0.12) f *= 1 + o.vibrato * Math.sin(TAU * (o.vibratoRate ?? 5.5) * t) * Math.min(1, (t - 0.12) / 0.2);
+    phase += (TAU * f) / RATE;
+    let v;
+    switch (o.wave ?? 'sine') {
+      case 'tri':
+        v = (2 / Math.PI) * Math.asin(Math.sin(phase));
+        break;
+      case 'square': // soft square: odd harmonics up to 9
+        v = (Math.sin(phase) + Math.sin(3 * phase) / 3 + Math.sin(5 * phase) / 5 + Math.sin(7 * phase) / 7 + Math.sin(9 * phase) / 9) * 0.8;
+        break;
+      case 'brass': {
+        v = 0;
+        // brighter at the start of the note, mellower as it sustains
+        const bright = 0.55 + 0.45 * Math.exp(-t / 0.15);
+        for (let k = 0; k < BRASS.length; k++) v += Math.sin((k + 1) * phase) * BRASS[k] * bright ** k;
+        v /= BRASS_NORM * 0.6;
+        break;
+      }
+      case 'bell': {
+        const index = (o.index ?? 2) * Math.exp(-t / ((o.decay ?? 0.4) * 0.6));
+        v = Math.sin(phase + index * Math.sin((o.ratio ?? 3.5) * phase));
+        break;
+      }
+      default:
+        v = Math.sin(phase);
     }
+    out[s0 + i] += v * vol * env(t, o.dur, o);
   }
-  return Array.from(out);
+}
+
+/** Filtered noise (state-variable filter). cutoff may be a function of progress 0..1 */
+function noise(out, o) {
+  const s0 = Math.floor(o.start * RATE);
+  const len = Math.floor(o.dur * RATE);
+  const q = o.q ?? 0.7;
+  let low = 0, band = 0;
+  for (let i = 0; i < len && s0 + i < out.length; i++) {
+    const t = i / RATE;
+    const fc = typeof o.cutoff === 'function' ? o.cutoff(t / o.dur) : o.cutoff ?? 2000;
+    const f = 2 * Math.sin((Math.PI * Math.min(fc, RATE / 4)) / RATE);
+    const input = rand();
+    low += f * band;
+    const high = input - low - q * band;
+    band += f * high;
+    const v = o.mode === 'low' ? low : o.mode === 'high' ? high : band;
+    out[s0 + i] += v * (o.vol ?? 0.2) * env(t, o.dur, o);
+  }
+}
+
+/** Small room reverb (Schroeder: 4 damped combs + 2 allpasses) */
+function reverb(x, wet) {
+  if (!wet) return x;
+  const combs = [29.7, 37.1, 41.1, 43.7].map((ms) => ({ buf: new Float32Array(Math.round((ms * RATE) / 1000)), i: 0, lp: 0 }));
+  const aps = [5.0, 1.7].map((ms) => ({ buf: new Float32Array(Math.round((ms * RATE) / 1000)), i: 0 }));
+  const out = new Float32Array(x.length);
+  for (let n = 0; n < x.length; n++) {
+    let s = 0;
+    for (const c of combs) {
+      const y = c.buf[c.i];
+      c.lp = y * 0.6 + c.lp * 0.4; // damping
+      c.buf[c.i] = x[n] + c.lp * 0.8;
+      c.i = (c.i + 1) % c.buf.length;
+      s += y;
+    }
+    s *= 0.25;
+    for (const a of aps) {
+      const y = a.buf[a.i];
+      const v = s + y * 0.5;
+      a.buf[a.i] = v;
+      a.i = (a.i + 1) % a.buf.length;
+      s = y - v * 0.5;
+    }
+    out[n] = x[n] + s * wet;
+  }
+  return out;
+}
+
+/**
+ * Render a sound: build into a buffer with a reverb tail, normalize, fade the end.
+ * level scales the normalized peak so short, dense sounds (coin) don't feel louder than the rest.
+ */
+function sound(seconds, wet, build, level = 1) {
+  const x = new Float32Array(Math.ceil(seconds * RATE));
+  build(x);
+  const y = reverb(x, wet);
+  let peak = 0;
+  for (const v of y) peak = Math.max(peak, Math.abs(v));
+  const gain = peak > 0 ? (0.89 * level) / peak : 1;
+  const fade = Math.floor(0.04 * RATE);
+  return Array.from(y, (v, i) => v * gain * Math.min(1, (y.length - i) / fade));
 }
 
 const sounds = {
-  tap: render(0.08, [{ f: 880, start: 0, dur: 0.07, vol: 0.4, decay: 8 }]),
-  coin: render(0.35, [
-    { f: NOTE.B5, start: 0, dur: 0.08, type: 'square', vol: 0.3, decay: 2 },
-    { f: NOTE.E6, start: 0.08, dur: 0.26, type: 'square', vol: 0.3, decay: 5 },
-  ]),
-  medal: render(0.7, [
-    { f: NOTE.C6, start: 0, dur: 0.5, type: 'bell', vol: 0.45 },
-    { f: NOTE.E6, start: 0.1, dur: 0.5, type: 'bell', vol: 0.45 },
-    { f: NOTE.G6, start: 0.2, dur: 0.5, type: 'bell', vol: 0.45 },
-  ]),
-  unlock: render(0.45, [{ f: (p) => 400 + 900 * p, start: 0, dur: 0.4, vol: 0.4, decay: 3 }]),
-  levelup: render(0.95, [
-    { f: NOTE.C5, start: 0, dur: 0.14, type: 'square', vol: 0.28, decay: 2 },
-    { f: NOTE.E5, start: 0.11, dur: 0.14, type: 'square', vol: 0.28, decay: 2 },
-    { f: NOTE.G5, start: 0.22, dur: 0.14, type: 'square', vol: 0.28, decay: 2 },
-    { f: NOTE.C6, start: 0.33, dur: 0.6, type: 'square', vol: 0.28, decay: 4 },
-  ]),
-  tada: render(1.3, [
-    { f: NOTE.G4, start: 0, dur: 0.12, type: 'bell', vol: 0.4, decay: 2 },
-    { f: NOTE.C5, start: 0.12, dur: 0.12, type: 'bell', vol: 0.4, decay: 2 },
-    { f: NOTE.E5, start: 0.24, dur: 0.12, type: 'bell', vol: 0.4, decay: 2 },
-    ...[NOTE.C5, NOTE.E5, NOTE.G5, NOTE.C6].map((f) => ({ f, start: 0.4, dur: 0.9, type: 'bell', vol: 0.25, decay: 4 })),
-  ]),
+  // UI 按鈕：柔和的「啵」
+  tap: sound(0.16, 0.05, (x) => {
+    tone(x, { start: 0, dur: 0.1, freq: 1000, glide: (p) => 1 - 0.48 * Math.min(1, p * 2.5), vol: 0.6, attack: 0.002, decay: 0.03 });
+    tone(x, { start: 0, dur: 0.012, freq: 2600, wave: 'tri', vol: 0.08, attack: 0.001, decay: 0.004 });
+  }),
+
+  // ＋1 計數：往上滑的泡泡聲（播放時會隨進度升高音調）
+  pop: sound(0.2, 0.08, (x) => {
+    tone(x, { start: 0, dur: 0.12, freq: 520, glide: (p) => 1 + 0.7 * Math.min(1, p * 2), vol: 0.55, attack: 0.003, decay: 0.05 });
+    tone(x, { start: 0, dur: 0.08, freq: 1040, glide: (p) => 1 + 0.7 * Math.min(1, p * 2), vol: 0.12, attack: 0.003, decay: 0.03 });
+  }),
+
+  // 金幣：經典兩音 ＋ 一點閃光
+  coin: sound(0.6, 0.15, (x) => {
+    tone(x, { start: 0, dur: 0.075, freq: midi(83), wave: 'square', vol: 0.22, attack: 0.002, release: 0.01 });
+    tone(x, { start: 0.075, dur: 0.42, freq: midi(88), wave: 'square', vol: 0.22, attack: 0.002, decay: 0.13 });
+    tone(x, { start: 0.075, dur: 0.3, freq: midi(100), wave: 'bell', ratio: 3.5, index: 1.5, vol: 0.07, decay: 0.08 });
+  }, 0.6),
+
+  // 獎牌：鐘琴琶音 ＋ 高音閃爍
+  medal: sound(1.4, 0.25, (x) => {
+    [84, 88, 91, 96].forEach((m, i) => {
+      tone(x, { start: i * 0.07, dur: 1.0, freq: midi(m), wave: 'bell', ratio: 3.5, index: 2.2, vol: 0.26, decay: 0.35 });
+      tone(x, { start: i * 0.07, dur: 0.8, freq: midi(m - 12), vol: 0.08, attack: 0.01, decay: 0.3 });
+    });
+    noise(x, { start: 0.21, dur: 0.5, cutoff: 9000, mode: 'high', vol: 0.025, attack: 0.01, decay: 0.15 });
+  }),
+
+  // 解鎖／送出：魔法「咻～」＋ 上行五聲音階
+  unlock: sound(1.2, 0.3, (x) => {
+    noise(x, { start: 0, dur: 0.55, cutoff: (p) => 400 + 4600 * p, q: 0.4, vol: 0.3, attack: 0.3, decay: 0.12 });
+    [79, 81, 84, 86, 88, 91, 93, 96].forEach((m, i) => {
+      tone(x, { start: 0.1 + i * 0.045, dur: 0.5, freq: midi(m), wave: 'bell', ratio: 3.5, index: 1.6, vol: 0.15, decay: 0.18 });
+    });
+    tone(x, { start: 0.46, dur: 0.6, freq: midi(96), wave: 'bell', ratio: 1.4, index: 1.2, vol: 0.12, decay: 0.3 });
+  }),
+
+  // 新區域出現：漸強的和弦墊 ＋ 雲霧散開 ＋ 鐘聲
+  reveal: sound(2.2, 0.35, (x) => {
+    for (const m of [60, 64, 67, 72]) {
+      for (const d of [-5, 5]) {
+        tone(x, { start: 0, dur: 1.5, freq: midi(m), detune: d, wave: 'tri', vol: 0.07, attack: 0.8, release: 0.5, vibrato: 0.003 });
+      }
+    }
+    noise(x, { start: 0, dur: 1.1, cutoff: (p) => 200 + 2800 * p, q: 0.5, vol: 0.18, attack: 0.8, release: 0.25 });
+    [84, 88, 91, 96].forEach((m, i) => {
+      tone(x, { start: 0.85 + i * 0.05, dur: 1.1, freq: midi(m), wave: 'bell', ratio: 3.5, index: 2, vol: 0.17, decay: 0.45 });
+    });
+  }),
+
+  // 升級：銅管琶音 ＋ 長音 ＋ 高音閃爍
+  levelup: sound(1.6, 0.22, (x) => {
+    [72, 76, 79].forEach((m, i) => {
+      tone(x, { start: i * 0.1, dur: 0.13, freq: midi(m), wave: 'brass', vol: 0.22, attack: 0.015, release: 0.03 });
+    });
+    tone(x, { start: 0.3, dur: 0.95, freq: midi(84), wave: 'brass', vol: 0.22, attack: 0.02, release: 0.35, vibrato: 0.006 });
+    tone(x, { start: 0.3, dur: 0.95, freq: midi(76), wave: 'brass', vol: 0.1, attack: 0.03, release: 0.35 });
+    tone(x, { start: 0.3, dur: 0.95, freq: midi(79), wave: 'brass', vol: 0.1, attack: 0.03, release: 0.35 });
+    [96, 100, 103, 108].forEach((m, i) => {
+      tone(x, { start: 0.32 + i * 0.05, dur: 0.5, freq: midi(m), wave: 'bell', ratio: 3.5, index: 1.4, vol: 0.08, decay: 0.15 });
+    });
+  }),
+
+  // 完成：小鼓滾奏 → 「噹～噹！」銅管和弦 ＋ 鈸 ＋ 鐘聲
+  tada: sound(2.3, 0.3, (x) => {
+    for (let t = 0, k = 0; t < 0.38; t += 0.034, k++) {
+      noise(x, { start: t, dur: 0.06, cutoff: 1900, q: 0.6, vol: 0.2 + 0.35 * (t / 0.38), attack: 0.001, decay: 0.022 });
+    }
+    for (const m of [55, 59, 62, 67]) {
+      tone(x, { start: 0.42, dur: 0.13, freq: midi(m), wave: 'brass', vol: 0.13, attack: 0.012, release: 0.03 });
+    }
+    for (const m of [60, 64, 67, 72]) {
+      tone(x, { start: 0.58, dur: 1.35, freq: midi(m), wave: 'brass', vol: 0.13, attack: 0.02, release: 0.45, vibrato: 0.005 });
+    }
+    tone(x, { start: 0.58, dur: 1.2, freq: midi(48), vol: 0.22, attack: 0.01, decay: 0.5 });
+    noise(x, { start: 0.58, dur: 1.2, cutoff: 6000, mode: 'high', vol: 0.12, attack: 0.002, decay: 0.45 });
+    noise(x, { start: 0.58, dur: 0.12, cutoff: 180, mode: 'low', vol: 0.35, attack: 0.002, decay: 0.05 });
+    [96, 100, 103].forEach((m, i) => {
+      tone(x, { start: 0.62 + i * 0.06, dur: 0.8, freq: midi(m), wave: 'bell', ratio: 3.5, index: 1.8, vol: 0.1, decay: 0.3 });
+    });
+  }),
 };
 for (const [name, s] of Object.entries(sounds)) writeFileSync(join(SOUNDS, `${name}.wav`), wav(s));
 

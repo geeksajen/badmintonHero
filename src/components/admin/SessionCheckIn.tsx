@@ -57,6 +57,13 @@ export function SessionCheckIn() {
               送出
             </Button>
           </div>
+          <button
+            type="button"
+            onClick={() => document.getElementById('notes')?.scrollIntoView({ behavior: 'smooth' })}
+            className="mt-2 min-h-[48px] text-base font-bold text-violet-700 underline"
+          >
+            📝 {s.teachNote ? '修改' : '寫'}今天的教學筆記（只有家長看得到）
+          </button>
         </>
       )}
     </Card>

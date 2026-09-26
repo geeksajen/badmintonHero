@@ -48,7 +48,7 @@ export function reconcile(ctx: Ctx, doc: QuestProgressDoc, player: Player): Reco
 
   // 5. 重算 DAG（只把 locked 升為 unlocked）
   const beforeUnlock = byNodeId;
-  const unlocked = unlockAll(active, byNodeId);
+  const unlocked = unlockAll(active, byNodeId, g.player.sessionCount);
   if (unlocked.unlockedIds.length > 0) {
     byNodeId = unlocked.byNodeId;
     changed = true;

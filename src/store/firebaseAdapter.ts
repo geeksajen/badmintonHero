@@ -16,12 +16,14 @@ import {
   orderBy,
   query,
   runTransaction,
+  startAfter,
   updateDoc,
   where,
   writeBatch,
   type DocumentData,
   type DocumentReference,
   type Firestore,
+  type QueryDocumentSnapshot,
   type Transaction,
   type WriteBatch,
 } from 'firebase/firestore';
@@ -31,7 +33,7 @@ import { getFirebase } from '../lib/firebase';
 import { countRead, countWrite } from '../lib/firestore-counter';
 import type { ActivityLog, Player, PracticeSession, QuestProgressDoc, RedemptionOrder } from '../types';
 import { cacheKey, readCache, writeCache } from './cache';
-import { applyResultToCaches, HISTORY_LIMIT, makeCtx, writeCountOf } from './common';
+import { applyResultToCaches, HISTORY_LIMIT, makeCtx, MAX_SESSION_PAGES, writeCountOf } from './common';
 import type { GameAction, GameStore } from './types';
 
 const refs = (db: Firestore, pid: string) => ({
@@ -199,6 +201,24 @@ export const firebaseAdapter: GameStore = {
     const data = snap.docs.map((d) => d.data() as PracticeSession);
     writeCache(key, data, rev);
     return data;
+  },
+
+  async fetchAllSessions(playerId) {
+    const { db } = getFirebase();
+    const col = refs(db, playerId).sessions;
+    const all: PracticeSession[] = [];
+    let cursor: QueryDocumentSnapshot | undefined;
+    for (let page = 0; page < MAX_SESSION_PAGES; page++) {
+      const q = cursor
+        ? query(col, orderBy('createdAt'), startAfter(cursor), limit(HISTORY_LIMIT))
+        : query(col, orderBy('createdAt'), limit(HISTORY_LIMIT));
+      const snap = await getDocs(q);
+      countRead(Math.max(1, snap.size), 'getDocs:allSessions');
+      all.push(...snap.docs.map((d) => d.data() as PracticeSession));
+      if (snap.size < HISTORY_LIMIT) break;
+      cursor = snap.docs[snap.docs.length - 1];
+    }
+    return all;
   },
 
   async fetchOrders(playerId, rev, force) {

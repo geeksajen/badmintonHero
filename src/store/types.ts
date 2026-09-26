@@ -46,4 +46,10 @@ export interface GameStore {
   fetchLogs(playerId: string, rev: number, force?: boolean): Promise<ActivityLog[]>;
   fetchSessions(playerId: string, rev: number, force?: boolean): Promise<PracticeSession[]>;
   fetchOrders(playerId: string, rev: number, force?: boolean): Promise<RedemptionOrder[]>;
+
+  /**
+   * 全部練習紀錄（由舊到新）。只在家長按【匯出實戰筆記】時呼叫：
+   * 每頁仍是 limit(20)，最多 MAX_SESSION_PAGES 頁（半年約 52 筆 ≈ 3 頁 ≈ 52 次讀取）。不快取。
+   */
+  fetchAllSessions(playerId: string): Promise<PracticeSession[]>;
 }

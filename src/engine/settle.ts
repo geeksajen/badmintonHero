@@ -32,7 +32,9 @@ export function settleNode(
     });
   }
   if (s.pending.length > 0) {
-    next = { ...next, tiersAwarded: [...next.tiersAwarded, ...s.pending] };
+    const tierSessions = { ...next.tierSessions };
+    for (const tier of s.pending) tierSessions[tier] = g.player.sessionCount;
+    next = { ...next, tiersAwarded: [...next.tiersAwarded, ...s.pending], tierSessions };
   }
 
   let becameCompleted = false;

@@ -68,7 +68,7 @@ export function createInitialState(
   const byNodeId: Record<string, QuestProgress> = {};
   for (const n of curriculum.quests) byNodeId[n.id] = emptyProgress(n.id);
   const active = curriculum.quests.filter((n) => !n.isRetired);
-  const unlocked = unlockAll(active, byNodeId).byNodeId; // parentIds 為空的起點
+  const unlocked = unlockAll(active, byNodeId, 0).byNodeId; // parentIds 為空的起點
   const iso = now.toISOString();
   return {
     player: {
@@ -128,6 +128,8 @@ function sessionFromActive(player: Player, curriculum: Curriculum): PracticeSess
     bonusExp: s.bonusExp,
     bonusCoins: s.bonusCoins,
     coachNote: s.coachNote,
+    teachNote: s.teachNote,
+    sessionNumber: s.sessionNumber,
     createdAt: s.createdAt,
   };
 }
@@ -188,6 +190,7 @@ export function checkIn(state: GameState, ctx: Ctx, input: { durationMin?: numbe
       coinsGiven: 0,
       bonusExp: 0,
       bonusCoins: 0,
+      sessionNumber: sessionCount,
       durationMin: input.durationMin,
       createdAt: now.toISOString(),
     },
@@ -308,7 +311,7 @@ export function approveQuest(
 
   byNodeId = { ...byNodeId, [input.nodeId]: next };
   const active = ctx.curriculum.quests.filter((n) => !n.isRetired);
-  const unlocked = unlockAll(active, byNodeId);
+  const unlocked = unlockAll(active, byNodeId, g.player.sessionCount);
   for (const chapterId of newlyRevealedChapters(ctx.curriculum, byNodeId, unlocked.unlockedIds)) {
     g.items.push({ kind: 'chapter_unlocked', chapterId });
   }
@@ -380,6 +383,21 @@ export function sendCoachNote(state: GameState, ctx: Ctx, input: { text: string 
   g.items.push({ kind: 'coach_note', text });
   addLog(g, ctx, { type: 'coach_note', message: '教練的一句話', coachFeedback: text });
   return finish(state, ctx, g, prepared(state, ctx));
+}
+
+export const TEACH_NOTE_MAX_LENGTH = 500;
+
+/**
+ * 家長的教學筆記：寫在「最近一次練習」上（回家後隔天補寫也可以），只有家長看得到。
+ * 不寫日誌、不發 lastEvent —— 小孩畫面完全不受影響。
+ */
+export function saveTeachNote(state: GameState, ctx: Ctx, input: { text: string }): ActionResult {
+  const s = state.player.activeSession;
+  if (!s) throw new Error('還沒有任何練習紀錄，先按【開始今天的練習】');
+  const text = input.text.trim().slice(0, TEACH_NOTE_MAX_LENGTH) || undefined;
+  if (text === s.teachNote) return finish(state, ctx, startGrants(state.player), prepared(state, ctx));
+  const g = startGrants({ ...state.player, activeSession: { ...s, teachNote: text } });
+  return finish(state, ctx, g, prepared(state, ctx), { emitEvent: false });
 }
 
 // ---------------------------------------------------------------------------

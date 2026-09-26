@@ -45,6 +45,7 @@ export function fillMissingProgress(
 export function unlockAll(
   nodes: QuestNode[],
   byNodeId: Record<string, QuestProgress>,
+  atSession?: number, // 記在 unlockedAtSession，供實戰筆記計算「這關花了幾次練習」
 ): { byNodeId: Record<string, QuestProgress>; unlockedIds: string[] } {
   let current = byNodeId;
   const all: string[] = [];
@@ -52,7 +53,10 @@ export function unlockAll(
     const ids = computeUnlocked(nodes, current);
     if (ids.length === 0) break;
     current = { ...current };
-    for (const id of ids) current[id] = { ...current[id], status: 'unlocked' };
+    for (const id of ids) {
+      current[id] = { ...current[id], status: 'unlocked' };
+      if (atSession !== undefined) current[id].unlockedAtSession = atSession;
+    }
     all.push(...ids);
   }
   return { byNodeId: current, unlockedIds: all };

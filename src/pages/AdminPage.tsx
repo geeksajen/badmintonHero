@@ -4,9 +4,11 @@ import { ActiveQuestList } from '../components/admin/ActiveQuestList';
 import { BonusDispatcher } from '../components/admin/BonusDispatcher';
 import { CourseProgress } from '../components/admin/CourseProgress';
 import { DangerZone } from '../components/admin/DangerZone';
+import { FieldNotes } from '../components/admin/FieldNotes';
 import { OrderList } from '../components/admin/OrderList';
 import { PendingList } from '../components/admin/PendingList';
 import { usePendingNodes } from '../components/admin/usePendingNodes';
+import { useStuckNodes } from '../components/admin/useStuckNodes';
 import { SessionCheckIn } from '../components/admin/SessionCheckIn';
 import { ShopManager } from '../components/admin/ShopManager';
 import { ToastProvider } from '../components/ui/Toast';
@@ -19,6 +21,7 @@ const SECTIONS: [string, string][] = [
   ['active', '挑戰'],
   ['bonus', '獎勵'],
   ['orders', '訂單'],
+  ['notes', '筆記'],
   ['course', '進度'],
   ['shop', '商店'],
   ['danger', '危險'],
@@ -29,6 +32,7 @@ export function AdminPage() {
   const { player, store } = useReadyGame();
   const actions = useGameActions();
   const pendingCount = usePendingNodes().length;
+  const stuckCount = useStuckNodes().length;
 
   return (
     <ToastProvider>
@@ -75,6 +79,11 @@ export function AdminPage() {
                     {pendingCount}
                   </span>
                 )}
+                {id === 'notes' && stuckCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-amber-400 px-1 text-xs font-black text-amber-950">
+                    {stuckCount}
+                  </span>
+                )}
               </a>
             ))}
           </nav>
@@ -86,6 +95,7 @@ export function AdminPage() {
           <ActiveQuestList />
           <BonusDispatcher />
           <OrderList />
+          <FieldNotes />
           <CourseProgress />
           <ShopManager />
           <DangerZone />

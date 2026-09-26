@@ -5,6 +5,7 @@ import type { Player } from '../types';
 import { cacheKey, upsertCache } from './cache';
 
 export const HISTORY_LIMIT = 20; // spec §2.2 ③-4：每次 getDocs 一律 limit(20)
+export const MAX_SESSION_PAGES = 10; // fetchAllSessions 的上限：200 筆，遠超過 6 個月的 ~52 次
 
 export function makeCtx(player: Player | null, curriculumId?: string): Ctx {
   return { now: new Date(), newId, curriculum: getCurriculum(player?.curriculumId ?? curriculumId) };
