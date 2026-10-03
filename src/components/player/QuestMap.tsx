@@ -4,27 +4,20 @@ import { progOf, useReadyGame } from '../../hooks/useGameState';
 import { markSeenNew, readSeenNew } from '../../lib/seenNew';
 import type { QuestNode } from '../../types';
 import { MedalTally } from '../ui/MedalBadge';
-import { ForestScenery } from './ForestScenery';
+import { DEV_PREVIEW_AVAILABLE, setShowAllChapters, useShowAllChapters } from '../../lib/devPreview';
+import { ChapterScenery } from './ChapterScenery';
 import { computeMapLayout, trailSpots } from './mapLayout';
 import { QuestNodeItem } from './QuestNodeItem';
-
-/** 各章節兩側的飄浮裝飾（純裝飾） */
-const DECOR: Record<number, string[]> = {
-  1: ['🎈', '🌸', '🎈', '🍭', '🌼', '🎀'],
-  2: ['🌳', '🍄', '🌲', '🐿️', '🍃', '🦋'],
-  3: ['⚡', '🪨', '🌵', '⚡', '🦎', '☁️'],
-  4: ['🍃', '🌀', '🪁', '🍂', '🌬️', '🕊️'],
-  5: ['⭐', '👑', '✨', '🏔️', '🌟', '💎'],
-};
 
 export function QuestMap({ onOpenNode }: { onOpenNode: (node: QuestNode) => void }) {
   const { curriculum, progress, player } = useReadyGame();
   const [seenNew, setSeenNew] = useState(readSeenNew);
   const reviewMode = !!player.graduatedAt;
+  const devShowAll = useShowAllChapters(); // 只有 npm run dev 時可能為 true
 
-  // 只顯示已到達的章節：還沒走到的章節對小孩完全隱藏（畢業後全部顯示）
+  // 只顯示已到達的章節：還沒走到的章節對小孩完全隱藏（畢業後、或開發預覽時全部顯示）
   const lastChapter = curriculum.chapters[curriculum.chapters.length - 1].id;
-  const maxChapter = reviewMode ? lastChapter : reachedChapter(curriculum, progress);
+  const maxChapter = reviewMode || devShowAll ? lastChapter : reachedChapter(curriculum, progress);
   const layout = useMemo(
     () =>
       computeMapLayout(
@@ -66,6 +59,17 @@ export function QuestMap({ onOpenNode }: { onOpenNode: (node: QuestNode) => void
 
   return (
     <>
+      {DEV_PREVIEW_AVAILABLE && (
+        <div className="mx-auto mt-2 flex max-w-3xl justify-center px-3">
+          <button
+            type="button"
+            onClick={() => setShowAllChapters(!devShowAll)}
+            className="rounded-full border-2 border-dashed border-ink/50 bg-white/80 px-4 py-2 font-mono text-sm text-ink"
+          >
+            🛠 DEV：{devShowAll ? '顯示全部章節（點一下改回只顯示已到達的章節）' : '只顯示已到達的章節（點一下顯示全部）'}
+          </button>
+        </div>
+      )}
       {/* 地圖頂端的迷霧：只暗示「前面還有路」，不透露有幾章、叫什麼 */}
       {hasMore && (
         <div className="relative mx-auto mt-2 flex h-44 w-full max-w-3xl flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-400 via-slate-300 to-transparent text-ink">
@@ -83,33 +87,18 @@ export function QuestMap({ onOpenNode }: { onOpenNode: (node: QuestNode) => void
       {/* 章節區域背景 */}
       {layout.bands.map(({ chapter, top, height }) => {
         const t = tallyChapter(curriculum, chapter.id, progress);
-        const decor = DECOR[chapter.id] ?? DECOR[1];
         return (
           <div
             key={chapter.id}
             className={`dots absolute inset-x-0 bg-gradient-to-t ${chapter.theme}`}
             style={{ top, height }}
           >
-            {/* 泡棉森林有專屬的森林場景；其他章節用飄浮裝飾（左右兩側，不擋到節點） */}
-            {chapter.id === 2 && <ForestScenery height={height} trailSpots={trailSpots({ chapter, top, height }, layout.nodes)} />}
-            {chapter.id !== 2 && decor.map((emoji, k) => {
-              const left = k % 2 === 0;
-              const y = 18 + ((k * 37) % 70);
-              return (
-                <span
-                  key={k}
-                  aria-hidden
-                  className="pointer-events-none absolute animate-float select-none text-4xl opacity-80 drop-shadow"
-                  style={{
-                    top: `${y}%`,
-                    [left ? 'left' : 'right']: `${2 + ((k * 5) % 7)}%`,
-                    animationDelay: `${-k * 0.9}s`,
-                  }}
-                >
-                  {emoji}
-                </span>
-              );
-            })}
+            {/* 每一章的專屬場景（只在兩側邊帶與小路旁的空位，不擋到關卡） */}
+            <ChapterScenery
+              chapterId={chapter.id}
+              height={height}
+              trailSpots={trailSpots({ chapter, top, height }, layout.nodes)}
+            />
 
             {/* 章節招牌 */}
             <div className="relative flex justify-center px-4 pt-4">

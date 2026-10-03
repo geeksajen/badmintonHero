@@ -25,6 +25,14 @@ export default {
         stripes: { from: { backgroundPosition: '0 0' }, to: { backgroundPosition: '28px 0' } },
         shine: { '0%': { transform: 'translateX(-120%) skewX(-20deg)' }, '60%,100%': { transform: 'translateX(220%) skewX(-20deg)' } },
         drift: { '0%,100%': { transform: 'translateX(0)' }, '50%': { transform: 'translateX(18px)' } },
+        // 地圖背景：氣球慢慢往上飄、峽谷的閃電、山頂的星星
+        rise: {
+          '0%': { transform: 'translateY(0) rotate(-4deg)', opacity: '0' },
+          '15%,80%': { opacity: '1' },
+          '100%': { transform: 'translateY(-110px) rotate(4deg)', opacity: '0' },
+        },
+        flash: { '0%,86%,100%': { opacity: '0.15' }, '88%,93%': { opacity: '1' }, '90%': { opacity: '0.4' } },
+        twinkle: { '0%,100%': { opacity: '0.45', transform: 'scale(0.85)' }, '50%': { opacity: '1', transform: 'scale(1.1)' } },
       },
       animation: {
         breathe: 'breathe 2.4s ease-in-out infinite',
@@ -36,6 +44,9 @@ export default {
         stripes: 'stripes 1s linear infinite',
         shine: 'shine 3.5s ease-in-out infinite',
         drift: 'drift 6s ease-in-out infinite',
+        rise: 'rise 7s ease-in-out infinite',
+        flash: 'flash 5s linear infinite',
+        twinkle: 'twinkle 2.2s ease-in-out infinite',
       },
     },
   },
