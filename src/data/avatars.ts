@@ -1,4 +1,4 @@
-/** 小孩可自選的頭像（與課程包無關，所有孩子共用） */
+/** 小孩可自選的頭像（與課程包無關，所有孩子共用）。每一組在選擇畫面是一個分頁 */
 export interface AvatarOption {
   emoji: string;
   label: string;
@@ -39,6 +39,24 @@ export const AVATARS: { group: string; items: AvatarOption[] }[] = [
       { emoji: '👩‍🔬', label: '科學家' },
       { emoji: '💃', label: '舞蹈家' },
       { emoji: '🏄‍♀️', label: '衝浪高手' },
+    ],
+  },
+  {
+    group: '動物',
+    items: [
+      { emoji: '🐱', label: '小貓咪' },
+      { emoji: '🐶', label: '小狗狗' },
+      { emoji: '🐰', label: '小兔子' },
+      { emoji: '🐼', label: '熊貓' },
+      { emoji: '🐻', label: '小熊' },
+      { emoji: '🦊', label: '小狐狸' },
+      { emoji: '🐯', label: '小老虎' },
+      { emoji: '🦁', label: '小獅子' },
+      { emoji: '🐨', label: '無尾熊' },
+      { emoji: '🐧', label: '企鵝' },
+      { emoji: '🦄', label: '獨角獸' },
+      { emoji: '🐸', label: '小青蛙' },
+      { emoji: '🐥', label: '小雞' },
     ],
   },
 ];

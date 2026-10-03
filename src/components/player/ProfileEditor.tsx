@@ -82,10 +82,10 @@ function EditorBody({ onClose }: { onClose: () => void }) {
 
       {/* 頭像 */}
       <div>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <span className="text-xl font-black text-slate-600">選一個頭像</span>
-          {/* 男生／女生分頁：頭像變多後不用一路往下捲 */}
-          <div role="tablist" className="flex gap-1 rounded-2xl bg-slate-100 p-1">
+        <span className="mb-2 block text-xl font-black text-slate-600">選一個頭像</span>
+        {/* 男生／女生／動物分頁：頭像變多後不用一路往下捲 */}
+        <div className="mb-3">
+          <div role="tablist" className="grid grid-cols-3 gap-1 rounded-2xl bg-slate-100 p-1">
             {AVATARS.map((g, i) => (
               <button
                 key={g.group}
@@ -96,7 +96,7 @@ function EditorBody({ onClose }: { onClose: () => void }) {
                   playSound('tap');
                   setGroup(i);
                 }}
-                className={`min-h-[56px] rounded-xl px-5 text-lg font-black transition ${
+                className={`min-h-[56px] rounded-xl px-2 text-lg font-black transition ${
                   group === i ? 'toon-sm bg-white text-ink' : 'text-slate-500'
                 }`}
               >
