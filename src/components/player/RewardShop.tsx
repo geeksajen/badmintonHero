@@ -24,7 +24,8 @@ export function RewardShop() {
   const now = new Date();
 
   const items = effectiveRewards(curriculum.rewards, player);
-  const normal = items.filter((r) => !r.isGrandPrize && r.isActive);
+  const normal = items.filter((r) => !r.isGrandPrize && r.isActive && r.category !== 'stationery');
+  const stationery = items.filter((r) => r.isActive && r.category === 'stationery');
   const grand = items.filter((r) => r.isGrandPrize && r.isActive);
 
   const redeem = async () => {
@@ -86,6 +87,17 @@ export function RewardShop() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{normal.map(card)}</div>
+
+      {stationery.length > 0 && (
+        <section>
+          <h3 className="mb-3 flex items-center gap-2 text-2xl text-ink">
+            <span className="animate-wiggle">✏️</span> 文具區
+          </h3>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {stationery.map((r, i) => card(r, i + normal.length))}
+          </div>
+        </section>
+      )}
 
       {/* 畢業大禮：獨立置底 ＋ 儲蓄進度條 */}
       {grand.map((r) => {

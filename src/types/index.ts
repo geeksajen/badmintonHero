@@ -84,6 +84,7 @@ export interface RewardItem {
   isActive: boolean;
   stockPerWeek?: number;
   isGrandPrize?: boolean; // 畢業大禮：商店獨立置底並顯示儲蓄進度條
+  category?: 'stationery'; // 文具：商店另外一區顯示；未設定 = 一般獎品
 }
 
 /** 出席里程碑：純累加、永不歸零 */

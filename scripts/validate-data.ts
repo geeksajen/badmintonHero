@@ -45,7 +45,10 @@ for (const c of Object.values(CURRICULA)) {
     check(t.exp === 3970 && t.coins === 1985, '節點全金牌 3,970 EXP / 1,985 幣', `(${t.exp} / ${t.coins})`);
     check(t.milestoneExp === 800 && t.milestoneCoins === 400, '出席里程碑 800 EXP / 400 幣');
     check(t.curveTotal === 6720 && c.levelCurve.length === 24, '等級曲線 24 級距合計 6,720');
-    check(c.equipments.length === 10 && c.titles.length === 6 && c.rewards.length === 8, '10 裝備 / 6 稱號 / 8 商品');
+    const prizes = c.rewards.filter((r) => r.category !== 'stationery').length;
+    const stationery = c.rewards.length - prizes;
+    check(c.equipments.length === 10 && c.titles.length === 6 && prizes === 8, '10 裝備 / 6 稱號 / 8 獎品', `（另有 ${stationery} 件文具）`);
+    check(new Set(c.rewards.map((r) => r.id)).size === c.rewards.length, '商品 id 不重複');
   }
 
   console.log('\n── 52 次練習收入模擬 ──');
