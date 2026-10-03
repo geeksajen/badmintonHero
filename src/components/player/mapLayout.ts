@@ -89,3 +89,28 @@ export function computeMapLayout(chapters: Chapter[], quests: QuestNode[]): MapL
 
   return { height, nodes: pos, bands, edges };
 }
+
+export interface TrailSpot {
+  x: number; // 0–100（%）
+  y: number; // px，相對於章節區塊頂端
+}
+
+/**
+ * 背景裝飾可以放在「小路旁」的位置：只取這一列只有一個關卡的列，放在對面那一側。
+ * 與節點至少相隔 30% 寬度，並限制在 20～80% 之間（不進入兩側樹林）。
+ */
+export function trailSpots(band: ChapterBand, nodes: NodePos[]): TrailSpot[] {
+  const byRow = new Map<number, number[]>();
+  for (const n of nodes) {
+    if (n.node.chapterId !== band.chapter.id) continue;
+    byRow.set(n.y, [...(byRow.get(n.y) ?? []), n.x]);
+  }
+  const spots: TrailSpot[] = [];
+  for (const [y, xs] of byRow) {
+    if (xs.length !== 1) continue;
+    const x = xs[0];
+    const target = x <= 50 ? x + 32 : x - 32;
+    spots.push({ x: Math.min(80, Math.max(20, target)), y: y - band.top });
+  }
+  return spots;
+}

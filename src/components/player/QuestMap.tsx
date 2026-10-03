@@ -4,7 +4,8 @@ import { progOf, useReadyGame } from '../../hooks/useGameState';
 import { markSeenNew, readSeenNew } from '../../lib/seenNew';
 import type { QuestNode } from '../../types';
 import { MedalTally } from '../ui/MedalBadge';
-import { computeMapLayout } from './mapLayout';
+import { ForestScenery } from './ForestScenery';
+import { computeMapLayout, trailSpots } from './mapLayout';
 import { QuestNodeItem } from './QuestNodeItem';
 
 /** 各章節兩側的飄浮裝飾（純裝飾） */
@@ -89,8 +90,9 @@ export function QuestMap({ onOpenNode }: { onOpenNode: (node: QuestNode) => void
             className={`dots absolute inset-x-0 bg-gradient-to-t ${chapter.theme}`}
             style={{ top, height }}
           >
-            {/* 章節主題的飄浮裝飾（左右兩側，不擋到節點） */}
-            {decor.map((emoji, k) => {
+            {/* 泡棉森林有專屬的森林場景；其他章節用飄浮裝飾（左右兩側，不擋到節點） */}
+            {chapter.id === 2 && <ForestScenery height={height} trailSpots={trailSpots({ chapter, top, height }, layout.nodes)} />}
+            {chapter.id !== 2 && decor.map((emoji, k) => {
               const left = k % 2 === 0;
               const y = 18 + ((k * 37) % 70);
               return (
