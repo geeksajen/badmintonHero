@@ -78,7 +78,7 @@
 ### 0.3 規格外新增的功能
 
 - **Quest Detail 的 −1 按鈕**：小孩常誤觸 ＋1。
-- **個人資料編輯**：小孩點頭像／名字可改名、從 6 個內建頭像（`src/data/avatars.ts`）挑一個。
+- **個人資料編輯**：小孩點頭像／名字可改名、從 26 個內建頭像（`src/data/avatars.ts`，男生／女生各 13 個，分頁切換、手機 4 欄／iPad 6 欄）挑一個。
 - **章節漸進揭露**：地圖只顯示已到達的章節，之後的章節藏在雲霧後（「打倒這一區的魔王就能看見！」）；
   打倒魔王時播 `chapter_unlocked` 動畫；地圖開啟時自動捲到目前的冒險前線。
   `reconcile()` 不會因改版而提前曝光尚未到達的章節。畢業後（回顧模式）全部顯示。
@@ -1081,7 +1081,7 @@ badmintonHero/
 │  │  │     ├─ attendance.ts   ATTENDANCE_EXP / COINS / MILESTONES
 │  │  │     ├─ CHANGELOG.md    ★ 每次改關卡表的紀錄，見 §12.5
 │  │  │     └─ NOTES.md        ★ 真實教學心得回寫，見 §12.7
-│  │  ├─ avatars.ts      ★ 6 個內建頭像
+│  │  ├─ avatars.ts      ★ 26 個內建頭像（男生／女生各 13）
 │  │  └─ index.ts        依 player.curriculumId 取得課程包
 │  ├─ store/             ← 唯一允許 import firebase/firestore 的目錄（ESLint 強制）
 │  │  ├─ types.ts        GameStore 介面（UI 只依賴這個）

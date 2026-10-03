@@ -22,6 +22,10 @@ function EditorBody({ onClose }: { onClose: () => void }) {
   const actions = useGameActions();
   const [name, setName] = useState(player.name);
   const [avatar, setAvatar] = useState(player.avatar);
+  // 預設打開目前頭像所在的分頁
+  const [group, setGroup] = useState(() =>
+    Math.max(0, AVATARS.findIndex((g) => g.items.some((a) => a.emoji === player.avatar))),
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,37 +82,52 @@ function EditorBody({ onClose }: { onClose: () => void }) {
 
       {/* 頭像 */}
       <div>
-        <span className="mb-2 block text-xl font-black text-slate-600">選一個頭像</span>
-        <div className="space-y-3">
-          {AVATARS.map((g) => (
-            <div key={g.group}>
-              <div className="mb-1 text-base font-bold text-slate-400">{g.group}</div>
-              <div className="grid grid-cols-3 gap-3">
-                {g.items.map((a) => {
-                  const selected = a.emoji === avatar;
-                  return (
-                    <motion.button
-                      key={a.emoji}
-                      type="button"
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => {
-                        playSound('tap');
-                        setAvatar(a.emoji);
-                      }}
-                      aria-label={a.label}
-                      aria-pressed={selected}
-                      className={`flex min-h-[112px] flex-col items-center justify-center gap-1 rounded-3xl border-4 transition ${
-                        selected ? 'border-ink bg-yellow-200 shadow-[0_4px_0_#2b2350]' : 'border-slate-200 bg-slate-50'
-                      }`}
-                    >
-                      <span className="text-6xl leading-none">{a.emoji}</span>
-                      <span className={`text-base ${selected ? 'text-ink' : 'text-slate-500'}`}>{a.label}</span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <span className="text-xl font-black text-slate-600">選一個頭像</span>
+          {/* 男生／女生分頁：頭像變多後不用一路往下捲 */}
+          <div role="tablist" className="flex gap-1 rounded-2xl bg-slate-100 p-1">
+            {AVATARS.map((g, i) => (
+              <button
+                key={g.group}
+                type="button"
+                role="tab"
+                aria-selected={group === i}
+                onClick={() => {
+                  playSound('tap');
+                  setGroup(i);
+                }}
+                className={`min-h-[56px] rounded-xl px-5 text-lg font-black transition ${
+                  group === i ? 'toon-sm bg-white text-ink' : 'text-slate-500'
+                }`}
+              >
+                {g.group}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div role="tabpanel" className="grid grid-cols-4 gap-2 sm:grid-cols-6 sm:gap-3">
+          {AVATARS[group].items.map((a) => {
+            const selected = a.emoji === avatar;
+            return (
+              <motion.button
+                key={a.emoji}
+                type="button"
+                whileTap={{ scale: 0.9 }}
+                onClick={() => {
+                  playSound('tap');
+                  setAvatar(a.emoji);
+                }}
+                aria-label={a.label}
+                aria-pressed={selected}
+                className={`flex min-h-[88px] flex-col items-center justify-center gap-1 rounded-2xl border-[3px] px-1 transition ${
+                  selected ? 'border-ink bg-yellow-200 shadow-[0_4px_0_#2b2350]' : 'border-slate-200 bg-slate-50'
+                }`}
+              >
+                <span className="text-5xl leading-none">{a.emoji}</span>
+                <span className={`w-full truncate text-center text-sm ${selected ? 'text-ink' : 'text-slate-500'}`}>{a.label}</span>
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 
