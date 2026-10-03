@@ -7,6 +7,7 @@ import { useReadyGame } from '../../hooks/useGameState';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { useToast } from '../ui/toastContext';
+import { PastNotes } from './PastNotes';
 import { useRun } from './useRun';
 import { useStuckNodes } from './useStuckNodes';
 
@@ -112,6 +113,8 @@ export function FieldNotes() {
       ) : (
         <p className="text-lg text-slate-500">第一次練習簽到後就可以寫教學筆記。</p>
       )}
+
+      <PastNotes />
 
       {/* 卡關提醒 */}
       <h3 className="mt-4 text-lg font-black">🚧 卡關提醒</h3>
