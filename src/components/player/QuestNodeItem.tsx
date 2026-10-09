@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Crown, Lock } from 'lucide-react';
 import { TIER_EMOJI, highestAwarded } from '../../engine/tiers';
+import type { ReactNode } from 'react';
 import type { QuestNode, QuestProgress } from '../../types';
 import { ProgressRing } from '../ui/ProgressRing';
 
@@ -13,7 +14,7 @@ export function QuestNodeItem({
   y,
   isNew,
   reviewMode,
-  hereAvatar,
+  hereMarker,
   onOpen,
 }: {
   node: QuestNode;
@@ -22,7 +23,7 @@ export function QuestNodeItem({
   y: number;
   isNew: boolean;
   reviewMode: boolean;
-  hereAvatar?: string; // 目前關卡：顯示小朋友頭像的「你在這裡！」
+  hereMarker?: ReactNode; // 目前關卡：「你在這裡！」標籤裡的小圖（狗狗夥伴的臉）
   onOpen: (node: QuestNode) => void;
 }) {
   const size = node.isBoss ? BASE * 1.5 : BASE; // 魔王放大 1.5 倍
@@ -58,18 +59,20 @@ export function QuestNodeItem({
   return (
     <div
       id={`node-${node.id}`}
-      className={`absolute flex -translate-x-1/2 flex-col items-center ${hereAvatar ? 'z-10' : ''}`}
+      className={`absolute flex -translate-x-1/2 flex-col items-center ${hereMarker ? 'z-10' : ''}`}
       style={{ left: `${x}%`, top: y - size / 2, width: Math.max(size, 100) }}
     >
-      {/* 「你在這裡！」：用小朋友自己的頭像標示目前的關卡 */}
-      {hereAvatar && (
+      {/* 「你在這裡！」：狗狗夥伴陪著小朋友標示目前的關卡 */}
+      {hereMarker && (
         <div
           aria-hidden
           className="pointer-events-none absolute left-1/2 flex animate-bob flex-col items-center"
-          style={{ top: node.isBoss ? -104 : -86 }}
+          style={{ top: node.isBoss ? -112 : -94 }}
         >
           <span className="toon-sm flex items-center gap-1 whitespace-nowrap rounded-full bg-yellow-300 py-0.5 pl-1 pr-3 text-base text-ink">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-2xl">{hereAvatar}</span>
+            <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-ink bg-sky-100">
+              {hereMarker}
+            </span>
             你在這裡！
           </span>
           <span className="-mt-[3px] h-0 w-0 border-x-[9px] border-t-[12px] border-x-transparent border-t-ink" />

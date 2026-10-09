@@ -29,15 +29,18 @@ export interface PuppyArtProps {
   still?: boolean;
   className?: string;
   title?: string;
+  /** 'head'：只畫出臉（小圖示用） */
+  crop?: 'head';
 }
 
 const NO_WEAR: PetWear = { wristband: false, shoes: false, scarf: false };
 
-export function PuppyArt({ stage, growth, color, wear = NO_WEAR, happy = false, still = false, className, title }: PuppyArtProps) {
+export function PuppyArt({ stage, growth, color, wear = NO_WEAR, happy = false, still = false, className, title, crop }: PuppyArtProps) {
   const uid = useId().replace(/:/g, '');
   const pal = PALETTES[color];
+  const viewBox = crop === 'head' ? headViewBox(stage, growth) : '0 0 200 200';
   return (
-    <svg viewBox="0 0 200 200" className={className} role="img" aria-label={title}>
+    <svg viewBox={viewBox} className={className} role="img" aria-label={title}>
       {title && <title>{title}</title>}
       {stage === 0 ? (
         <SleepingPuppy pal={pal} still={still} />
@@ -105,6 +108,31 @@ function SleepingPuppy({ pal, still }: { pal: Pal; still: boolean }) {
   );
 }
 
+/** 醒著的狗狗的尺寸（區域座標：原點在腳下，往上為負；畫面上再 translate(100 184) scale(k)） */
+function puppyGeometry(stage: number, growth: number) {
+  const p = Math.min(1, Math.max(0, growth));
+  const k = 0.8 + 0.45 * p; // 整體大小（長到最大時，頭頂、球拍、羽毛球仍在畫框內）
+  const sitting = stage === 1;
+  const headR = 40 - 4 * p;
+  const bodyRx = 27 + 11 * p;
+  const bodyRy = 24 + 8 * p;
+  const legW = 12 + 3 * p;
+  const legH = sitting ? 0 : 12 + 20 * p;
+  const cy = sitting ? -bodyRy * 0.95 : -(legH + bodyRy * 0.75);
+  const hy = cy - bodyRy * 0.6 - headR * (sitting ? 0.8 : 0.75);
+  return { k, sitting, headR, bodyRx, bodyRy, legW, cy, hy };
+}
+
+/** 只看臉的畫框（地圖上「你在這裡！」的小圖）：以頭為中心，含耳朵 */
+function headViewBox(stage: number, growth: number): string {
+  if (stage === 0) return '35 75 130 130'; // 睡在籃子裡：框住小狗和籃子
+  const { k, headR, hy } = puppyGeometry(stage, growth);
+  const cx = 100;
+  const cy = 184 + k * hy;
+  const half = k * headR * 1.35;
+  return `${cx - half} ${cy - half} ${half * 2} ${half * 2}`;
+}
+
 function AwakePuppy({
   uid,
   stage,
@@ -122,20 +150,9 @@ function AwakePuppy({
   happy: boolean;
   still: boolean;
 }) {
-  const p = Math.min(1, Math.max(0, growth));
-  const k = 0.8 + 0.45 * p; // 整體大小（長到最大時，頭頂、球拍、羽毛球仍在畫框內）
+  const { k, sitting, headR, bodyRx, bodyRy, legW, cy, hy } = puppyGeometry(stage, growth);
   const sw = 3.3 / k; // 線條在畫面上維持差不多粗
-  const sitting = stage === 1;
   const hero = stage >= 6;
-
-  const headR = 40 - 4 * p;
-  const bodyRx = 27 + 11 * p;
-  const bodyRy = 24 + 8 * p;
-  const legW = 12 + 3 * p;
-  const legH = sitting ? 0 : 12 + 20 * p;
-
-  const cy = sitting ? -bodyRy * 0.95 : -(legH + bodyRy * 0.75);
-  const hy = cy - bodyRy * 0.6 - headR * (sitting ? 0.8 : 0.75);
   const neckY = hy + headR * 0.85;
 
   const tailBx = bodyRx * 0.72;

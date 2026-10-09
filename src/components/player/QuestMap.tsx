@@ -7,7 +7,9 @@ import { MedalTally } from '../ui/MedalBadge';
 import { DEV_PREVIEW_AVAILABLE, setShowAllChapters, useShowAllChapters } from '../../lib/devPreview';
 import { ChapterScenery } from './ChapterScenery';
 import { computeMapLayout, trailSpots } from './mapLayout';
+import { PuppyArt } from './PuppyArt';
 import { QuestNodeItem } from './QuestNodeItem';
+import { petColorOf, petGrowth, petNameOf, petStageIndex, petWearOf } from '../../engine/pet';
 
 export function QuestMap({ onOpenNode }: { onOpenNode: (node: QuestNode) => void }) {
   const { curriculum, progress, player } = useReadyGame();
@@ -54,6 +56,21 @@ export function QuestMap({ onOpenNode }: { onOpenNode: (node: QuestNode) => void
     }
     onOpenNode(node);
   };
+
+  // 「你在這裡！」的小圖：目前成長階段、毛色、裝備的狗狗夥伴（只畫臉）
+  const graduated = !!player.graduatedAt;
+  const hereDog = (
+    <PuppyArt
+      crop="head"
+      stage={petStageIndex(player.level, graduated)}
+      growth={petGrowth(player.level, graduated)}
+      color={petColorOf(player)}
+      wear={petWearOf(player)}
+      still
+      className="h-full w-full"
+      title={petNameOf(player)}
+    />
+  );
 
   const lit = (fromId: string) => reviewMode || progress.byNodeId[fromId]?.status === 'completed';
 
@@ -169,7 +186,7 @@ export function QuestMap({ onOpenNode }: { onOpenNode: (node: QuestNode) => void
           y={y}
           isNew={!!node.addedInVersion && node.addedInVersion > 1 && !seenNew.has(node.id)}
           reviewMode={reviewMode}
-          hereAvatar={!reviewMode && node.id === focusId ? player.avatar : undefined}
+          hereMarker={!reviewMode && node.id === focusId ? hereDog : undefined}
           onOpen={open}
         />
       ))}
