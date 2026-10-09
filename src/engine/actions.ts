@@ -31,6 +31,7 @@ import {
   type Grants,
 } from './grant';
 import { checkGraduation } from './graduation';
+import { PET_COLORS, PET_MAX_STAGE, PET_NAME_MAX_LENGTH, petStageIndex } from './pet';
 import { reconcile } from './reconcile';
 import { settleNode } from './settle';
 import { newlyRevealedChapters } from './stats';
@@ -481,6 +482,8 @@ export function graduate(state: GameState, ctx: Ctx, input: { finalWords?: strin
   if (g.player.currentTitleId !== ctx.curriculum.graduationTitleId) {
     g.player = { ...g.player, currentTitleId: ctx.curriculum.graduationTitleId };
   }
+  // 畢業時狗狗直接長成羽球勇者犬
+  if (petStageIndex(state.player.level) < PET_MAX_STAGE) g.items.push({ kind: 'pet_grow', stage: PET_MAX_STAGE });
   addLog(g, ctx, {
     type: 'graduated',
     message: '🎓 畢業了！成為真正的羽球勇者！',
@@ -522,6 +525,18 @@ export function setShopOverride(
   }
   const g = startGrants({ ...state.player, shopOverrides: cur });
   return finish(state, ctx, g, prepared(state, ctx));
+}
+
+/** 幫狗狗夥伴取名字／換毛色。純外觀，不寫日誌、不發 lastEvent */
+export function updatePet(state: GameState, ctx: Ctx, input: { name?: string; color?: string }): ActionResult {
+  const name = input.name?.trim();
+  if (input.name !== undefined && !name) throw new Error('狗狗要有名字喔');
+  if (name && [...name].length > PET_NAME_MAX_LENGTH) throw new Error(`名字最多 ${PET_NAME_MAX_LENGTH} 個字`);
+  if (input.color !== undefined && !PET_COLORS.some((c) => c.id === input.color)) throw new Error('沒有這個顏色');
+  let player = state.player;
+  if (name && name !== player.petName) player = { ...player, petName: name };
+  if (input.color && input.color !== player.petColor) player = { ...player, petColor: input.color };
+  return finish(state, ctx, startGrants(player), prepared(state, ctx));
 }
 
 export const NAME_MAX_LENGTH = 10;

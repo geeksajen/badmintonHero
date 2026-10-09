@@ -175,7 +175,8 @@ describe('核可的慶祝佇列（Step 6 驗收：五段依序）', () => {
     s = { ...s, player: { ...s.player, currentExp: 75 } }; // 75 + 銅30 + 銀18 = 123 ≥ 50+70 → 連升兩級
     const r = approveQuest(s, makeCtx(), { nodeId: 'q1_1', count: 10, feedback: '太厲害了' });
     const kinds = r.player.lastEvent!.items.map((i) => i.kind);
-    expect(kinds).toEqual(['tier', 'tier', 'quest_completed', 'equipment', 'level_up', 'node_unlocked', 'coach_note']);
+    // Lv.1 → 3 剛好讓狗狗從小窩醒來，所以升級後接著「狗狗長大了」
+    expect(kinds).toEqual(['tier', 'tier', 'quest_completed', 'equipment', 'level_up', 'pet_grow', 'node_unlocked', 'coach_note']);
     const lv = r.player.lastEvent!.items.find((i) => i.kind === 'level_up');
     expect(lv).toEqual({ kind: 'level_up', from: 1, to: 3 });
   });

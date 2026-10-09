@@ -1,15 +1,18 @@
 import confetti from 'canvas-confetti';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { PET_MAX_STAGE, PET_STAGES, petColorOf, petGrowth, petNameOf, petWearOf } from '../../engine/pet';
 import { TIER_EMOJI, TIER_LABEL } from '../../engine/tiers';
 import { useReadyGame } from '../../hooks/useGameState';
 import { playSound, type SoundName } from '../../lib/sound';
-import type { CelebrationItem, Curriculum } from '../../types';
+import type { CelebrationItem, Curriculum, Player } from '../../types';
 import { Button } from '../ui/Button';
+import { PuppyArt } from './PuppyArt';
 import { SpeakButton } from './SpeakButton';
 
 interface Scene {
   emoji: string;
+  art?: ReactNode; // 有值時取代 emoji（例如狗狗夥伴的圖）
   title: string;
   subtitle?: string;
   sound: SoundName;
@@ -23,7 +26,7 @@ interface Scene {
 
 const AUTO_ADVANCE_MS = 1500;
 
-function sceneOf(item: CelebrationItem, c: Curriculum): Scene {
+function sceneOf(item: CelebrationItem, c: Curriculum, player: Player): Scene {
   const nodeTitle = (id: string) => c.quests.find((q) => q.id === id)?.title.replace('【魔王】', '') ?? '';
   const reward = (exp: number, coins: number) => [exp ? `+${exp} EXP` : '', coins ? `+${coins} 金幣` : ''].filter(Boolean).join('　');
   switch (item.kind) {
@@ -87,6 +90,29 @@ function sceneOf(item: CelebrationItem, c: Curriculum): Scene {
       return { emoji: '🎁', title: '驚喜！', subtitle: `而且你之前的成績，剛好達成了 ${item.count} 個新獎牌！`, sound: 'medal', confetti: 'burst', gradient: 'from-amber-300 to-orange-500' };
     case 'graduation':
       return { emoji: '🎓', title: '畢業典禮', subtitle: '恭喜你走完五個區域，登上王者之巔！\n你是真正的羽球勇者！', sound: 'tada', confetti: 'school', gradient: 'from-fuchsia-600 via-violet-600 to-amber-500' };
+    case 'pet_grow': {
+      const stage = PET_STAGES[Math.min(item.stage, PET_MAX_STAGE)];
+      const name = petNameOf(player);
+      return {
+        emoji: '🐶',
+        art: (
+          <PuppyArt
+            stage={item.stage}
+            growth={item.stage >= PET_MAX_STAGE ? 1 : petGrowth(stage.minLevel)}
+            color={petColorOf(player)}
+            wear={petWearOf(player)}
+            happy
+            className="h-44 w-44"
+          />
+        ),
+        title: `${name} 長大了！`,
+        subtitle: `${name} 變成「${stage.name}」了！\n快去夥伴頁看看牠！`,
+        sound: 'tada',
+        confetti: 'big',
+        gradient: 'from-sky-300 to-lime-400',
+        speak: `${name} 長大了！變成${stage.name}了！`,
+      };
+    }
   }
 }
 
@@ -122,9 +148,9 @@ export function CelebrationModal({
   remaining: number;
   onNext: () => void;
 }) {
-  const { curriculum } = useReadyGame();
+  const { curriculum, player } = useReadyGame();
   const reduce = useReducedMotion();
-  const scene = item ? sceneOf(item, curriculum) : null;
+  const scene = item ? sceneOf(item, curriculum, player) : null;
   const sound = scene?.sound;
   const confettiKind = scene?.confetti;
 
@@ -174,7 +200,7 @@ export function CelebrationModal({
                 animate={{ rotateY: 0, scale: 1, rotate: 0 }}
                 transition={{ duration: 0.9, type: 'spring', damping: 10 }}
               >
-                {scene.emoji}
+                {scene.art ?? scene.emoji}
               </motion.div>
             </div>
             {/* 下半部：文字 ＋ 按鈕 */}

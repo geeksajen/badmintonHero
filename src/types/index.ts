@@ -169,6 +169,8 @@ export interface Player {
   lastEvent?: LiveEvent;
   curriculumId: string;
   curriculumVersion: number;
+  petName?: string; // 狗狗夥伴的名字（小孩自己取）
+  petColor?: string; // 狗狗的毛色 id，見 engine/pet.ts PET_COLORS
   shopOverrides?: ShopOverrides;
   redeemCounter?: RedeemCounter;
   activeSession?: ActiveSessionSummary;
@@ -198,6 +200,7 @@ export type CelebrationItem =
   | { kind: 'level_up'; from: number; to: number }
   | { kind: 'node_unlocked'; nodeIds: string[] }
   | { kind: 'chapter_unlocked'; chapterId: ChapterId }
+  | { kind: 'pet_grow'; stage: number } // 狗狗夥伴長到新階段
   | { kind: 'attendance'; sessionCount: number; exp: number; coins: number }
   | { kind: 'milestone'; label: string; exp: number; coins: number }
   | { kind: 'order_fulfilled'; rewardTitle: string }

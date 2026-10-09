@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AdventureLog } from '../components/player/AdventureLog';
 import { CelebrationModal } from '../components/player/CelebrationModal';
+import { CompanionPage } from '../components/player/CompanionPage';
 import { TreasureChest } from '../components/player/TreasureChest';
 import { HeroHeader } from '../components/player/HeroHeader';
 import { NextGoalCard } from '../components/player/NextGoalCard';
@@ -14,10 +15,11 @@ import { useCelebrationQueue } from '../hooks/useCelebrationQueue';
 import { useReadyGame } from '../hooks/useGameState';
 import type { QuestNode } from '../types';
 
-type Tab = 'map' | 'shop' | 'log';
+type Tab = 'map' | 'pet' | 'shop' | 'log';
 
 const TABS: { id: Tab; label: string; emoji: string; color: string }[] = [
   { id: 'map', label: '冒險地圖', emoji: '🗺️', color: 'bg-lime-300' },
+  { id: 'pet', label: '夥伴', emoji: '🐶', color: 'bg-sky-300' },
   { id: 'shop', label: '商店', emoji: '🏪', color: 'bg-amber-300' },
   { id: 'log', label: '日誌', emoji: '📜', color: 'bg-pink-300' },
 ];
@@ -50,11 +52,12 @@ export function PlayerPage() {
         {tab === 'map' && <QuestMap onOpenNode={setNode} />}
         {tab === 'map' && <NextGoalCard onOpenNode={setNode} />}
         {tab === 'shop' && <RewardShop />}
+        {tab === 'pet' && <CompanionPage />}
         {tab === 'log' && <AdventureLog />}
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4">
-        <div className="toon mx-auto grid max-w-3xl grid-cols-3 gap-2 rounded-[1.75rem] bg-white/95 p-2 backdrop-blur-md">
+        <div className="toon mx-auto grid max-w-3xl grid-cols-4 gap-1.5 sm:gap-2 rounded-[1.75rem] bg-white/95 p-2 backdrop-blur-md">
           {TABS.map(({ id, label, emoji, color }) => {
             const active = tab === id;
             return (
@@ -66,7 +69,7 @@ export function PlayerPage() {
                   setTab(id);
                   window.scrollTo({ top: 0 });
                 }}
-                className={`flex min-h-[72px] flex-col items-center justify-center rounded-2xl text-lg transition ${
+                className={`flex min-h-[72px] flex-col items-center justify-center whitespace-nowrap rounded-2xl text-base transition sm:text-lg ${
                   active ? `toon-sm ${color} text-ink` : 'text-slate-500'
                 }`}
               >

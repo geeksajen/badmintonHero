@@ -250,6 +250,17 @@ const sounds = {
       tone(x, { start: 0.62 + i * 0.06, dur: 0.8, freq: midi(m), wave: 'bell', ratio: 3.5, index: 1.8, vol: 0.1, decay: 0.3 });
     });
   }),
+
+  // 狗狗夥伴：兩聲短短的「汪汪」（播放時依狗狗大小調音高，小狗比較高）
+  // ★ 新音效一律加在最後：雜訊的亂數序列是共用的，插在前面會改變後面所有音效
+  woof: sound(0.42, 0.06, (x) => {
+    for (const t0 of [0, 0.17]) {
+      const glide = (p) => (p < 0.3 ? 1 + 0.35 * (p / 0.3) : 1.35 - 0.6 * ((p - 0.3) / 0.7));
+      tone(x, { start: t0, dur: 0.13, freq: 560, glide, wave: 'brass', vol: 0.5, attack: 0.006, decay: 0.06, release: 0.02 });
+      tone(x, { start: t0, dur: 0.12, freq: 280, glide, vol: 0.25, attack: 0.006, decay: 0.05, release: 0.02 });
+      noise(x, { start: t0, dur: 0.07, cutoff: 1500, q: 0.8, vol: 0.35, attack: 0.002, decay: 0.025 });
+    }
+  }, 0.85),
 };
 for (const [name, s] of Object.entries(sounds)) writeFileSync(join(SOUNDS, `${name}.wav`), wav(s));
 

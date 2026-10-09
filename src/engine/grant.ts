@@ -1,5 +1,6 @@
 import type { ActivityLog, CelebrationItem, Curriculum, Player } from '../types';
 import { applyExp } from './exp';
+import { petStageIndex } from './pet';
 import { toDateStr } from './util';
 
 /**
@@ -57,6 +58,10 @@ export function finishLevelUps(g: Grants, ctx: Ctx): void {
   if (levelsGained > 0) {
     g.items.push({ kind: 'level_up', from: before, to: player.level });
     addLog(g, ctx, { type: 'level_up', message: `升級了！Lv.${before} → Lv.${player.level}` });
+    // 狗狗夥伴長到新階段（成長只看等級，不另外存）
+    const graduated = !!player.graduatedAt;
+    const stage = petStageIndex(player.level, graduated);
+    if (stage > petStageIndex(before, graduated)) g.items.push({ kind: 'pet_grow', stage });
   }
 }
 

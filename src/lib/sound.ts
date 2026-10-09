@@ -4,9 +4,9 @@
  */
 import { Howl, Howler } from 'howler';
 
-export type SoundName = 'tada' | 'levelup' | 'coin' | 'tap' | 'pop' | 'unlock' | 'medal' | 'reveal';
+export type SoundName = 'tada' | 'levelup' | 'coin' | 'tap' | 'pop' | 'unlock' | 'medal' | 'reveal' | 'woof';
 
-const ALL_SOUNDS: SoundName[] = ['tada', 'levelup', 'coin', 'tap', 'pop', 'unlock', 'medal', 'reveal'];
+const ALL_SOUNDS: SoundName[] = ['tada', 'levelup', 'coin', 'tap', 'pop', 'unlock', 'medal', 'reveal', 'woof'];
 
 const MUTE_KEY = 'bhq:muted';
 const VOLUME = 0.4;
