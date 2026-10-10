@@ -171,6 +171,7 @@ export interface Player {
   curriculumVersion: number;
   petName?: string; // 狗狗夥伴的名字（小孩自己取）
   petColor?: string; // 狗狗的毛色 id，見 engine/pet.ts PET_COLORS
+  savingsGoalId?: string; // 小孩在商店釘選的存錢目標（RewardItem.id）
   shopOverrides?: ShopOverrides;
   redeemCounter?: RedeemCounter;
   activeSession?: ActiveSessionSummary;
@@ -204,7 +205,7 @@ export type CelebrationItem =
   | { kind: 'attendance'; sessionCount: number; exp: number; coins: number }
   | { kind: 'milestone'; label: string; exp: number; coins: number }
   | { kind: 'order_fulfilled'; rewardTitle: string }
-  | { kind: 'coach_note'; text: string }
+  | { kind: 'coach_note'; text: string; retry?: boolean } // retry：「再練習一次」時，狗狗夥伴會一起安慰
   | { kind: 'bonus'; exp: number; coins: number; message?: string }
   | { kind: 'discovery'; chapterId: ChapterId; count: number }
   | { kind: 'retro_medals'; count: number }

@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Gift, Lock, Pencil, Volume2, VolumeX } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { effectiveRewards } from '../../engine/economy';
 import { expToNext } from '../../engine/exp';
 import { weeksLeft } from '../../engine/graduation';
 import { useReadyGame } from '../../hooks/useGameState';
@@ -14,6 +15,10 @@ export function HeroHeader({ onOpenBag, onOpenProfile }: { onOpenBag: () => void
   const pct = need === 0 ? 100 : Math.min(100, (player.currentExp / need) * 100);
   const title = curriculum.titles.find((t) => t.id === player.currentTitleId);
   const left = weeksLeft(player, curriculum, new Date());
+  // 存錢目標（在商店釘選）：只顯示「還差多少」，數字只會變小
+  const goal = player.savingsGoalId
+    ? effectiveRewards(curriculum.rewards, player).find((r) => r.id === player.savingsGoalId)
+    : undefined;
 
   // 出席次數 ＋ 畢業倒數（spec §7.1）；iPad 放名字下方，手機放按鈕左邊
   const stats = (compact: boolean) => (
@@ -25,6 +30,12 @@ export function HeroHeader({ onOpenBag, onOpenProfile }: { onOpenBag: () => void
       <span className="whitespace-nowrap rounded-full bg-sky-100 px-2 py-0.5 text-sky-800">
         {player.graduatedAt ? '🎓 已畢業' : `⏳ ${compact ? '' : '畢業倒數 '}${left} 週`}
       </span>
+      {goal && (
+        <span className="whitespace-nowrap rounded-full bg-rose-100 px-2 py-0.5 text-rose-800">
+          📌 {goal.icon}{' '}
+          {player.coins >= goal.cost ? '可以換了！🎉' : `還差 ${goal.cost - player.coins} 🪙`}
+        </span>
+      )}
     </>
   );
 

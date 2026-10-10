@@ -79,7 +79,8 @@ describe('bestCount 只增不減', () => {
     expect(s.progress.byNodeId.q1_1.status).toBe('completed'); // 不回退
     expect(s.player.totalExp).toBe(before.totalExp);
     expect(s.player.coins).toBe(before.coins);
-    expect(s.player.lastEvent?.items[0]).toEqual({ kind: 'coach_note', text: '再試一次就會更棒！' });
+    // retry：小孩畫面會讓狗狗夥伴一起安慰
+    expect(s.player.lastEvent?.items[0]).toEqual({ kind: 'coach_note', text: '再試一次就會更棒！', retry: true });
   });
 
   it('未完成節點送審後被要求再練：submitted → unlocked', () => {

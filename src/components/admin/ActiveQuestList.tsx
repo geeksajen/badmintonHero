@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { nextGoal } from '../../engine/stats';
 import { visibleNodes } from '../../engine/unlock';
+import { toDateStr } from '../../engine/util';
 import { progOf, useReadyGame } from '../../hooks/useGameState';
 import { Card } from '../ui/Card';
 import { QuestReviewRow } from './QuestReviewRow';
@@ -7,7 +9,12 @@ import { QuestReviewRow } from './QuestReviewRow';
 /** 當前可挑戰：unlocked ＋ 未滿金牌的 completed（不含待審中）；現場可直接核可、手動輸入次數 */
 export function ActiveQuestList() {
   const { curriculum, progress, player } = useReadyGame();
-  const [openId, setOpenId] = useState<string | null>(null);
+  // 練習中：預設展開小孩現在的「下一關」，現場直接計數／核可
+  const [openId, setOpenId] = useState<string | null>(() => {
+    if (player.activeSession?.date !== toDateStr(new Date())) return null;
+    const goal = nextGoal(curriculum, progress, player);
+    return goal?.kind === 'play' ? goal.node.id : null;
+  });
   const [showDone, setShowDone] = useState(false);
 
   const nodes = visibleNodes(curriculum.quests).filter((n) => {

@@ -68,6 +68,14 @@ export function RewardShop() {
           🪙 {r.cost}
         </span>
         {left !== undefined && <span className="mt-1 text-sm text-slate-600">這週還可以換 {Math.max(0, left)} 次</span>}
+        {r.id === player.savingsGoalId && (
+          <>
+            <span className="toon-sm absolute -left-2 -top-2 rotate-[-8deg] rounded-full bg-rose-400 px-2 py-0.5 text-sm text-white">
+              📌 目標
+            </span>
+            {player.coins < r.cost && <span className="mt-1 text-sm font-bold text-rose-600">還差 {r.cost - player.coins} 🪙</span>}
+          </>
+        )}
       </motion.button>
     );
   };
@@ -114,7 +122,12 @@ export function RewardShop() {
             <div className="relative flex items-center gap-4">
               <span className="animate-wiggle text-7xl drop-shadow-[0_4px_0_rgba(43,35,80,0.35)]">{r.icon}</span>
               <div className="flex-1">
-                <div className="text-2xl">{r.title}</div>
+                <div className="text-2xl">
+                  {r.title}
+                  {r.id === player.savingsGoalId && (
+                    <span className="toon-sm ml-2 inline-block rotate-[-6deg] rounded-full bg-rose-400 px-2 py-0.5 align-middle text-sm">📌 目標</span>
+                  )}
+                </div>
                 <div className="text-base opacity-90">{r.description}</div>
               </div>
             </div>
@@ -168,6 +181,26 @@ export function RewardShop() {
         onCancel={() => setPicking(null)}
       >
         {error && <p className="mb-2 text-lg font-bold text-rose-600">{error}</p>}
+        {picking && (
+          <Button
+            variant="secondary"
+            block
+            className="mb-3"
+            disabled={busy}
+            onClick={async () => {
+              const pin = player.savingsGoalId !== picking.id;
+              try {
+                await actions.setSavingsGoal({ itemId: pin ? picking.id : null });
+                playSound(pin ? 'unlock' : 'tap');
+                setPicking(null);
+              } catch (e) {
+                setError((e as Error).message);
+              }
+            }}
+          >
+            {player.savingsGoalId === picking.id ? '📌 取消存錢目標' : '📌 設成我的存錢目標'}
+          </Button>
+        )}
       </ConfirmDialog>
 
       <Modal open={!!done} onClose={() => setDone(null)}>

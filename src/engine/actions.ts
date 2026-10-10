@@ -343,7 +343,7 @@ export function retryQuest(
     submittedAt: undefined,
     coachFeedback: text,
   };
-  g.items.push({ kind: 'coach_note', text });
+  g.items.push({ kind: 'coach_note', text, retry: true });
   addLog(g, ctx, { type: 'quest_retry', message: `【${node.title}】再練習一次`, coachFeedback: text });
   return finish(state, ctx, g, { ...byNodeId, [input.nodeId]: next });
 }
@@ -411,6 +411,8 @@ export function redeemReward(state: GameState, ctx: Ctx, input: { itemId: string
   const item = effectiveRewards(ctx.curriculum.rewards, state.player).find((r) => r.id === input.itemId);
   if (!item) throw new Error('找不到這個獎品');
   const g = startGrants(applyRedeem(state.player, item, ctx.now)); // 金幣不足會 throw，不會扣成負數
+  // 換到了存錢目標：目標達成，清掉
+  if (g.player.savingsGoalId === item.id) g.player = { ...g.player, savingsGoalId: undefined };
   const order: RedemptionOrder = {
     id: ctx.newId(),
     rewardItemId: item.id,
@@ -525,6 +527,14 @@ export function setShopOverride(
   }
   const g = startGrants({ ...state.player, shopOverrides: cur });
   return finish(state, ctx, g, prepared(state, ctx));
+}
+
+/** 小孩在商店釘選存錢目標（null 取消）。純顯示用，不寫日誌、不發 lastEvent */
+export function setSavingsGoal(state: GameState, ctx: Ctx, input: { itemId: string | null }): ActionResult {
+  if (input.itemId !== null && !ctx.curriculum.rewards.some((r) => r.id === input.itemId)) throw new Error('找不到這個獎品');
+  const goal = input.itemId ?? undefined;
+  const player = goal === state.player.savingsGoalId ? state.player : { ...state.player, savingsGoalId: goal };
+  return finish(state, ctx, startGrants(player), prepared(state, ctx));
 }
 
 /** 幫狗狗夥伴取名字／換毛色。純外觀，不寫日誌、不發 lastEvent */

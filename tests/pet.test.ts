@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adminAdjust, graduate, grantBonus, updatePet } from '../src/engine/actions';
+import { adminAdjust, graduate, grantBonus, redeemReward, setSavingsGoal, updatePet } from '../src/engine/actions';
 import {
   PET_MAX_STAGE,
   PET_STAGES,
@@ -84,6 +84,26 @@ describe('長大的慶祝', () => {
     const later = makeCtx({ now: new Date(2026, 8, 10, 10) });
     const r = graduate(s, later, {});
     expect(r.player.lastEvent!.items).toContainEqual({ kind: 'pet_grow', stage: PET_MAX_STAGE });
+  });
+});
+
+describe('存錢目標', () => {
+  it('釘選、取消；不存在的商品不行；換到目標後自動清掉', () => {
+    let s: GameState = fresh();
+    s = apply(s, setSavingsGoal(s, makeCtx(), { itemId: 'rw_mech_pencil' }));
+    expect(s.player.savingsGoalId).toBe('rw_mech_pencil');
+    expect(() => setSavingsGoal(s, makeCtx(), { itemId: 'rw_nope' })).toThrow();
+
+    // 換別的不影響目標；換到目標本身就清掉
+    s = { ...s, player: { ...s.player, coins: 500 } };
+    s = apply(s, redeemReward(s, makeCtx(), { itemId: 'rw_eraser' }));
+    expect(s.player.savingsGoalId).toBe('rw_mech_pencil');
+    s = apply(s, redeemReward(s, makeCtx(), { itemId: 'rw_mech_pencil' }));
+    expect(s.player.savingsGoalId).toBeUndefined();
+
+    s = apply(s, setSavingsGoal(s, makeCtx(), { itemId: 'rw_notebook' }));
+    s = apply(s, setSavingsGoal(s, makeCtx(), { itemId: null }));
+    expect(s.player.savingsGoalId).toBeUndefined();
   });
 });
 

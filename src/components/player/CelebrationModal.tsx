@@ -1,7 +1,7 @@
 import confetti from 'canvas-confetti';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, type ReactNode } from 'react';
-import { PET_MAX_STAGE, PET_STAGES, petColorOf, petGrowth, petNameOf, petWearOf } from '../../engine/pet';
+import { PET_MAX_STAGE, PET_STAGES, petColorOf, petGrowth, petNameOf, petStageIndex, petWearOf } from '../../engine/pet';
 import { TIER_EMOJI, TIER_LABEL } from '../../engine/tiers';
 import { useReadyGame } from '../../hooks/useGameState';
 import { playSound, type SoundName } from '../../lib/sound';
@@ -25,6 +25,21 @@ interface Scene {
 }
 
 const AUTO_ADVANCE_MS = 1500;
+
+/** 慶祝卡上的狗狗夥伴（依指定等級的樣子） */
+function petArt(player: Player, level: number, happy: boolean): ReactNode {
+  const graduated = !!player.graduatedAt;
+  return (
+    <PuppyArt
+      stage={petStageIndex(level, graduated)}
+      growth={petGrowth(level, graduated)}
+      color={petColorOf(player)}
+      wear={petWearOf(player)}
+      happy={happy}
+      className="h-44 w-44"
+    />
+  );
+}
 
 function sceneOf(item: CelebrationItem, c: Curriculum, player: Player): Scene {
   const nodeTitle = (id: string) => c.quests.find((q) => q.id === id)?.title.replace('【魔王】', '') ?? '';
@@ -52,7 +67,16 @@ function sceneOf(item: CelebrationItem, c: Curriculum, player: Player): Scene {
       return { emoji: '🏷️', title: '獲得新稱號！', subtitle: `「${t?.name ?? ''}」`, sound: 'tada', confetti: 'burst', gradient: 'from-rose-400 to-fuchsia-600' };
     }
     case 'level_up':
-      return { emoji: '⬆️', title: 'LEVEL UP!', subtitle: `Lv.${item.from} → Lv.${item.to}`, sound: 'levelup', confetti: 'big', gradient: 'from-lime-300 to-emerald-600' };
+      return {
+        emoji: '⬆️',
+        // 這次升級會讓狗狗長大的話，先維持舊樣子，留給下一張「長大了！」揭曉
+        art: petArt(player, petStageIndex(item.to) > petStageIndex(item.from) ? item.from : item.to, true),
+        title: 'LEVEL UP!',
+        subtitle: `Lv.${item.from} → Lv.${item.to}\n${petNameOf(player)} 也好開心！`,
+        sound: 'levelup',
+        confetti: 'big',
+        gradient: 'from-lime-300 to-emerald-600',
+      };
     case 'node_unlocked':
       return {
         emoji: '🗺️',
@@ -78,8 +102,23 @@ function sceneOf(item: CelebrationItem, c: Curriculum, player: Player): Scene {
       return { emoji: '🏅', title: item.label, subtitle: reward(item.exp, item.coins), sound: 'tada', confetti: 'big', gradient: 'from-amber-400 to-rose-500' };
     case 'order_fulfilled':
       return { emoji: '📦', title: '獎品送到囉！', subtitle: `你的「${item.rewardTitle}」到了！`, sound: 'tada', confetti: 'burst', gradient: 'from-orange-400 to-pink-500' };
-    case 'coach_note':
-      return { emoji: '🗣️', title: '教練想跟你說', subtitle: item.text, sound: 'tap', gradient: 'from-violet-400 to-indigo-600', speak: `教練想跟你說：${item.text}` };
+    case 'coach_note': {
+      if (!item.retry) {
+        return { emoji: '🗣️', title: '教練想跟你說', subtitle: item.text, sound: 'tap', gradient: 'from-violet-400 to-indigo-600', speak: `教練想跟你說：${item.text}` };
+      }
+      // 「再練習一次」：狗狗夥伴一起安慰（零懲罰，只有鼓勵）
+      const name = petNameOf(player);
+      const comfort = `${name}：沒關係，我陪你再試一次！`;
+      return {
+        emoji: '🗣️',
+        art: petArt(player, player.level, false),
+        title: '再試一次就會更棒！',
+        subtitle: `教練說：${item.text}\n\n🐶 ${comfort}`,
+        sound: 'tap',
+        gradient: 'from-violet-400 to-sky-500',
+        speak: `教練說：${item.text}。${comfort}`,
+      };
+    }
     case 'bonus':
       return { emoji: '🎁', title: '教練給你獎勵！', subtitle: [reward(item.exp, item.coins), item.message].filter(Boolean).join('\n'), sound: 'coin', confetti: 'burst', gradient: 'from-yellow-300 to-orange-500', speak: item.message ? `教練給你獎勵！${item.message}` : undefined, auto: !item.message };
     case 'discovery': {

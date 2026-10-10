@@ -49,6 +49,18 @@ export function QuestMap({ onOpenNode }: { onOpenNode: (node: QuestNode) => void
     document.getElementById(`node-${focusId}`)?.scrollIntoView({ block: 'center' });
   }, [focusId]);
 
+  // 「你在這裡！」的關卡捲出畫面時，浮出「回到我這裡」按鈕
+  const [hereVisible, setHereVisible] = useState(true);
+  useEffect(() => {
+    if (!focusId || reviewMode || typeof IntersectionObserver === 'undefined') return;
+    const el = document.getElementById(`node-${focusId}`);
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setHereVisible(entry.isIntersecting), { threshold: 0.2 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [focusId, reviewMode]);
+  const backToHere = () => document.getElementById(`node-${focusId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+
   const open = (node: QuestNode) => {
     if (!seenNew.has(node.id) && node.addedInVersion) {
       markSeenNew(node.id);
@@ -76,6 +88,18 @@ export function QuestMap({ onOpenNode }: { onOpenNode: (node: QuestNode) => void
 
   return (
     <>
+      {focusId && !reviewMode && !hereVisible && (
+        <button
+          type="button"
+          onClick={backToHere}
+          className="toon toon-press fixed bottom-[calc(12rem+env(safe-area-inset-bottom))] right-3 z-20 flex items-center gap-1 rounded-full bg-yellow-300 py-1 pl-1 pr-4 text-lg text-ink sm:right-5"
+        >
+          <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-ink bg-sky-100">
+            {hereDog}
+          </span>
+          回到我這裡
+        </button>
+      )}
       {DEV_PREVIEW_AVAILABLE && (
         <div className="mx-auto mt-2 flex max-w-3xl justify-center px-3">
           <button

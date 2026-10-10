@@ -8,7 +8,9 @@ import { playSound } from '../../lib/sound';
 import { TIER_ORDER, type QuestNode, type TierLevel } from '../../types';
 import { Button } from '../ui/Button';
 import { ConfirmDialog, Modal } from '../ui/Modal';
+import { PetBuddy } from './PetBuddy';
 import { SpeakButton } from './SpeakButton';
+import { petNameOf, petStageIndex } from '../../engine/pet';
 import { TierBar } from './TierBar';
 
 const SAVE_DEBOUNCE_MS = 1500;
@@ -18,6 +20,18 @@ function goalSentence(node: QuestNode, awarded: TierLevel[]): string {
   const next = TIER_ORDER.find((t) => !awarded.includes(t));
   if (!next) return '。你已經拿到金牌了，好厲害！';
   return `。做到 ${node.tiers[next]} ${node.unit}，就能拿到${TIER_LABEL[next]}！`;
+}
+
+const CHEERS = ['加油加油！', '好厲害！', '繼續繼續！', '汪！你好棒！', '我在旁邊幫你數喔！'];
+
+/** 狗狗夥伴按 ＋1 時說的話：跨過獎牌→恭喜；離下一面獎牌 3 下以內→倒數；其他→隨機加油 */
+function cheerLine(node: QuestNode, count: number, crossed: TierLevel | undefined, name: string, sleeping: boolean, n: number): string {
+  if (sleeping) return `${name} 在夢裡幫你加油！Zzz…`;
+  if (crossed) return `${name}：哇！${count} ${node.unit}，拿到${TIER_LABEL[crossed]}的分數了！快跟教練說！`;
+  const next = TIER_ORDER.map((t) => [t, node.tiers[t]] as const).find(([, th]) => count < th);
+  if (next && next[1] - count <= 3) return `${name}：再 ${next[1] - count} ${node.unit}就到${TIER_LABEL[next[0]]}了！`;
+  if (!next) return `${name}：${count} ${node.unit}！比金牌還多，太強了！`;
+  return `${name}：${CHEERS[n % CHEERS.length]}`;
 }
 
 /** ＋1 的音調：越接近下一面獎牌越高（0.85 → 1.45），超過金牌後維持最高 */
@@ -49,6 +63,13 @@ function SheetBody({ node, onClose }: { node: QuestNode; onClose: () => void }) 
   const waiting = !!prog.submittedAt;
 
   const [count, setCount] = useState(prog.currentCount);
+  // 狗狗夥伴的加油：每按一次 ＋1 跳一下、說一句話
+  const petName = petNameOf(player);
+  const sleeping = petStageIndex(player.level, !!player.graduatedAt) === 0;
+  const [cheer, setCheer] = useState({
+    bump: 0,
+    line: sleeping ? `${petName} 在夢裡幫你加油！Zzz…` : `${petName}：我們一起挑戰！我幫你數！`,
+  });
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +112,12 @@ function SheetBody({ node, onClose }: { node: QuestNode; onClose: () => void }) 
     if (delta > 0 && after && after !== before) playSound('medal');
     else if (delta > 0) playSound('pop', { rate: popRate(node, next) });
     else playSound('tap', { rate: 0.8 });
+    if (delta > 0) {
+      setCheer((c) => ({
+        bump: c.bump + 1,
+        line: cheerLine(node, next, after && after !== before ? after : undefined, petName, sleeping, c.bump + 1),
+      }));
+    }
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(flush, SAVE_DEBOUNCE_MS);
   };
@@ -150,6 +177,9 @@ function SheetBody({ node, onClose }: { node: QuestNode; onClose: () => void }) 
           <SpeakButton text={`教練說：${prog.coachFeedback}`} label="念教練的話" />
         </div>
       )}
+
+      {/* 狗狗夥伴在旁邊加油 */}
+      {canPlay && <PetBuddy line={cheer.line} bump={cheer.bump} />}
 
       {/* 計數區 */}
       <div className="toon dots relative flex items-center justify-between gap-3 rounded-3xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 px-4 py-4 text-white">

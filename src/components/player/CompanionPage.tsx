@@ -28,6 +28,8 @@ function stageGrowth(stage: number): number {
   return stage >= PET_MAX_STAGE ? 1 : petGrowth(PET_STAGES[stage].minLevel);
 }
 
+const WELCOME_LATER_KEY = 'bhq:pet:welcomeLater';
+
 function seenKey(playerId: string) {
   return `bhq:pet:seenSession:${playerId}`;
 }
@@ -54,6 +56,15 @@ export function CompanionPage() {
   const [line, setLine] = useState<string | null>(null);
   const [anim, setAnim] = useState<{ key: number; kind: 'happy' | 'spin' } | null>(null);
   const [editing, setEditing] = useState(false);
+  // 第一次來：還沒幫狗狗取名字 → 先請她取名字、選毛色（按「等一下再取」的話，下次打開 App 再問）
+  const [welcome, setWelcome] = useState(() => {
+    if (player.petName) return false;
+    try {
+      return sessionStorage.getItem(WELCOME_LATER_KEY) !== '1';
+    } catch {
+      return true;
+    }
+  });
 
   // 每次練習後第一次打開：轉一圈慶祝
   useEffect(() => {
@@ -217,6 +228,19 @@ export function CompanionPage() {
       </section>
 
       <PetEditor open={editing} onClose={() => setEditing(false)} stage={Math.max(1, realStage)} />
+      <PetEditor
+        open={welcome && !editing}
+        welcome
+        stage={Math.max(1, realStage)}
+        onClose={() => {
+          setWelcome(false);
+          try {
+            sessionStorage.setItem(WELCOME_LATER_KEY, '1');
+          } catch {
+            /* ignore */
+          }
+        }}
+      />
     </div>
   );
 }
@@ -254,15 +278,15 @@ function Yard() {
 }
 
 /** 幫狗狗取名字、選毛色 */
-function PetEditor({ open, onClose, stage }: { open: boolean; onClose: () => void; stage: number }) {
+function PetEditor({ open, onClose, stage, welcome = false }: { open: boolean; onClose: () => void; stage: number; welcome?: boolean }) {
   return (
-    <Modal open={open} onClose={onClose} variant="sheet" title="✏️ 我的狗狗">
-      {open && <PetEditorBody onClose={onClose} stage={stage} />}
+    <Modal open={open} onClose={onClose} variant="sheet" title={welcome ? '🐶 這是你的小狗！' : '✏️ 我的狗狗'}>
+      {open && <PetEditorBody onClose={onClose} stage={stage} welcome={welcome} />}
     </Modal>
   );
 }
 
-function PetEditorBody({ onClose, stage }: { onClose: () => void; stage: number }) {
+function PetEditorBody({ onClose, stage, welcome }: { onClose: () => void; stage: number; welcome: boolean }) {
   const { player } = useReadyGame();
   const actions = useGameActions();
   const [name, setName] = useState(petNameOf(player));
@@ -273,7 +297,8 @@ function PetEditorBody({ onClose, stage }: { onClose: () => void; stage: number 
 
   const trimmed = name.trim();
   const tooLong = [...trimmed].length > PET_NAME_MAX_LENGTH;
-  const changed = trimmed !== petNameOf(player) || color !== petColorOf(player);
+  // 歡迎時就算沿用預設名字也可以按「好了」（代表她確認過了）
+  const changed = welcome || trimmed !== petNameOf(player) || color !== petColorOf(player);
 
   const save = async () => {
     setBusy(true);
@@ -291,6 +316,16 @@ function PetEditorBody({ onClose, stage }: { onClose: () => void; stage: number 
 
   return (
     <div className="space-y-5">
+      {welcome && (
+        <div className="flex items-center gap-3 rounded-3xl bg-sky-50 p-3">
+          <PuppyArt stage={stage} growth={growth} color={color} className="h-24 w-24 shrink-0" />
+          <p className="flex-1 text-xl leading-snug text-ink">
+            牠會陪你一起練球、一起長大！
+            <br />
+            幫牠取個名字、選個顏色吧！
+          </p>
+        </div>
+      )}
       <label className="block">
         <span className="mb-1 block text-xl font-black text-slate-600">狗狗的名字</span>
         <input
@@ -336,8 +371,13 @@ function PetEditorBody({ onClose, stage }: { onClose: () => void; stage: number 
 
       {error && <p className="text-lg font-bold text-rose-600">{error}</p>}
       <Button size="lg" variant="success" block disabled={busy || !trimmed || tooLong || !changed} onClick={save}>
-        {busy ? '…' : '好了！'}
+        {busy ? '…' : welcome ? `就叫「${trimmed || '…'}」！` : '好了！'}
       </Button>
+      {welcome && (
+        <button type="button" onClick={onClose} className="mx-auto block min-h-[48px] text-lg text-slate-500 underline">
+          等一下再取
+        </button>
+      )}
     </div>
   );
 }

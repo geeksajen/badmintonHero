@@ -4,6 +4,7 @@ import { useGameActions } from '../../hooks/useGameActions';
 import { useReadyGame } from '../../hooks/useGameState';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { openAdminSection } from './adminNav';
 import { useRun } from './useRun';
 
 /** 今日練習（置頂）：簽到、本次小計、今日一句話 */
@@ -59,7 +60,7 @@ export function SessionCheckIn() {
           </div>
           <button
             type="button"
-            onClick={() => document.getElementById('notes')?.scrollIntoView({ behavior: 'smooth' })}
+            onClick={() => openAdminSection('notes')}
             className="mt-2 min-h-[48px] text-base font-bold text-violet-700 underline"
           >
             📝 {s.teachNote ? '修改' : '寫'}今天的教學筆記（只有家長看得到）

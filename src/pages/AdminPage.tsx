@@ -1,5 +1,8 @@
 import { LogOut } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ADMIN_SECTION_EVENT, openAdminSection } from '../components/admin/adminNav';
+import { toDateStr } from '../engine/util';
 import { ActiveQuestList } from '../components/admin/ActiveQuestList';
 import { BonusDispatcher } from '../components/admin/BonusDispatcher';
 import { CourseProgress } from '../components/admin/CourseProgress';
@@ -27,6 +30,9 @@ const SECTIONS: [string, string][] = [
   ['danger', '危險'],
 ];
 
+/** 練習中模式會收進「其他管理」的區塊 */
+const OTHER_SECTIONS = new Set(['orders', 'notes', 'course', 'shop', 'danger']);
+
 /** 家長視角（手機優先） */
 export function AdminPage() {
   const { player, store } = useReadyGame();
@@ -34,13 +40,33 @@ export function AdminPage() {
   const pendingCount = usePendingNodes().length;
   const stuckCount = useStuckNodes().length;
 
+  // 練習中模式：今天已簽到 → 球場上用得到的（今日、待審、挑戰、獎勵）放上面，其他收起來
+  const practicing = player.activeSession?.date === toDateStr(new Date());
+  const [showOther, setShowOther] = useState(false);
+  const otherOpen = !practicing || showOther;
+
+  // 任何地方要求打開某個區塊：先展開（如果被收起來），再捲過去
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (OTHER_SECTIONS.has(id)) setShowOther(true);
+      // 等展開後的畫面渲染完再捲動
+      setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }), 50);
+    };
+    window.addEventListener(ADMIN_SECTION_EVENT, onOpen);
+    return () => window.removeEventListener(ADMIN_SECTION_EVENT, onOpen);
+  }, []);
+
   return (
     <ToastProvider>
       <div className="min-h-dvh bg-slate-100 pb-24">
         <header className="sticky top-0 z-30 bg-slate-900 px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] text-white shadow">
           <div className="mx-auto flex max-w-2xl items-center justify-between gap-2">
             <div className="min-w-0">
-              <div className="text-sm font-bold text-white/60">家長控制台</div>
+              <div className="text-sm font-bold text-white/60">
+                家長控制台
+                {practicing && <span className="ml-2 rounded-full bg-emerald-500 px-2 py-0.5 text-xs text-white">🏸 練習中</span>}
+              </div>
               <div className="truncate text-lg font-black">
                 {player.avatar} {player.name}・Lv.{player.level}・🪙{player.coins}
               </div>
@@ -69,9 +95,11 @@ export function AdminPage() {
                 onClick={(e) => {
                   // HashRouter 佔用了 #，改用程式捲動
                   e.preventDefault();
-                  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+                  openAdminSection(id);
                 }}
-                className="relative shrink-0 rounded-full bg-white/10 px-4 py-2 text-base font-bold"
+                className={`relative shrink-0 rounded-full px-4 py-2 text-base font-bold ${
+                  practicing && OTHER_SECTIONS.has(id) ? 'bg-white/5 text-white/60' : 'bg-white/10'
+                }`}
               >
                 {label}
                 {id === 'pending' && pendingCount > 0 && (
@@ -94,11 +122,29 @@ export function AdminPage() {
           <PendingList />
           <ActiveQuestList />
           <BonusDispatcher />
-          <OrderList />
-          <FieldNotes />
-          <CourseProgress />
-          <ShopManager />
-          <DangerZone />
+          {practicing && (
+            <button
+              type="button"
+              onClick={() => setShowOther((v) => !v)}
+              aria-expanded={showOther}
+              className="flex min-h-[64px] w-full items-center justify-between gap-3 rounded-3xl border-2 border-dashed border-slate-300 bg-white/70 px-5 py-2 text-left font-bold text-slate-600"
+            >
+              <span className="min-w-0">
+                <span className="block text-lg">🧰 其他管理</span>
+                <span className="block text-sm font-normal text-slate-500">訂單、筆記、進度、商店、危險操作</span>
+              </span>
+              <span className="shrink-0 whitespace-nowrap text-lg">{showOther ? '收起 ▲' : '展開 ▼'}</span>
+            </button>
+          )}
+          {otherOpen && (
+            <>
+              <OrderList />
+              <FieldNotes />
+              <CourseProgress />
+              <ShopManager />
+              <DangerZone />
+            </>
+          )}
         </main>
       </div>
     </ToastProvider>
