@@ -126,6 +126,14 @@ export interface Curriculum {
 /** 家長在 Admin 的臨時上下架／改價（spec §7.2），存在 player 文件內 */
 export type ShopOverrides = Record<string, { isActive?: boolean; cost?: number }>;
 
+/** 狗狗「今天」的照顧紀錄（換日自動歸零；只用來算每日上限，不是飢餓值） */
+export interface PetCareDay {
+  day: string; // YYYY-MM-DD
+  meals: number;
+  lastMealAt?: string;
+  bathed: boolean;
+}
+
 /** 本週各商品的兌換次數（stockPerWeek 檢查用，避免為此額外查詢 orders） */
 export interface RedeemCounter {
   weekKey: string; // 該週週一 YYYY-MM-DD
@@ -172,6 +180,11 @@ export interface Player {
   petName?: string; // 狗狗夥伴的名字（小孩自己取）
   petColor?: string; // 狗狗的毛色 id，見 engine/pet.ts PET_COLORS
   savingsGoalId?: string; // 小孩在商店釘選的存錢目標（RewardItem.id）
+  /** 狗狗照顧（見 engine/pet.ts）：點心盒、親密度（只增不減）、今天的照顧紀錄、戴著的配飾 */
+  petFood?: Record<string, number>;
+  petAffection?: number;
+  petCare?: PetCareDay;
+  petAccessory?: string;
   shopOverrides?: ShopOverrides;
   redeemCounter?: RedeemCounter;
   activeSession?: ActiveSessionSummary;
@@ -289,7 +302,9 @@ export type ActivityType =
   | 'title_unlocked'
   | 'curriculum_updated'
   | 'admin_adjust'
-  | 'graduated';
+  | 'graduated'
+  | 'pet_food_bought' // 買狗狗點心（立即扣款，不需家長出貨）
+  | 'pet_unlock'; // 狗狗親密度解鎖了新把戲／配飾
 
 export interface ActivityLog {
   id: string;

@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import {
   PET_COLORS,
@@ -12,14 +12,20 @@ import {
   petNameOf,
   petStageIndex,
   petWearOf,
+  unlocksAt,
+  type PetAccessory,
   type PetColor,
+  type PetFood,
+  type PetUnlock,
 } from '../../engine/pet';
+import { toDateStr } from '../../engine/util';
 import { useGameActions } from '../../hooks/useGameActions';
 import { useReadyGame } from '../../hooks/useGameState';
 import { DEV_PREVIEW_AVAILABLE, useShowAllChapters } from '../../lib/devPreview';
 import { playSound } from '../../lib/sound';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
+import { PetCareSection } from './PetCare';
 import { PuppyArt } from './PuppyArt';
 import { SpeakButton } from './SpeakButton';
 
@@ -30,6 +36,17 @@ function stageGrowth(stage: number): number {
 
 const WELCOME_LATER_KEY = 'bhq:pet:welcomeLater';
 
+type Trick = 'shake' | 'spin' | 'highfive' | 'racket';
+
+/** 點狗狗時的動作：一般開心、練球後轉圈，以及親密度解鎖的把戲 */
+const MOTIONS: Record<'happy' | Trick, Record<string, number[]>> = {
+  happy: { y: [0, -26, 0, -10, 0], rotate: [0, -6, 6, 0] },
+  spin: { rotate: [0, 360], y: [0, -30, 0] },
+  shake: { rotate: [0, -14, 0, -14, 0], x: [0, -6, 0, -6, 0] }, // 握手：歪身伸手
+  highfive: { y: [0, -44, 0], scale: [1, 1.12, 1] }, // 擊掌：跳高高
+  racket: { rotate: [0, 22, -28, 16, 0], x: [0, 10, -10, 0] }, // 揮拍：左右揮
+};
+
 function seenKey(playerId: string) {
   return `bhq:pet:seenSession:${playerId}`;
 }
@@ -38,7 +55,7 @@ function seenKey(playerId: string) {
  * 夥伴分頁：狗狗住的小院子。成長只看等級（只升不降）；點狗狗會開心地跳一下、汪一聲、說一句話。
  * 每次練習後第一次打開，狗狗會開心轉一圈。不會餓、不會難過、不會變小（spec §8.1）。
  */
-export function CompanionPage({ onOpenBag }: { onOpenBag: () => void }) {
+export function CompanionPage({ onOpenBag, onGoShop }: { onOpenBag: () => void; onGoShop: () => void }) {
   const { player, playerId } = useReadyGame();
   const reduce = !!useReducedMotion();
   const devAll = useShowAllChapters(); // 只有 npm run dev 時可能為 true
@@ -54,7 +71,7 @@ export function CompanionPage({ onOpenBag }: { onOpenBag: () => void }) {
 
   const [taps, setTaps] = useState(0);
   const [line, setLine] = useState<string | null>(null);
-  const [anim, setAnim] = useState<{ key: number; kind: 'happy' | 'spin' } | null>(null);
+  const [anim, setAnim] = useState<{ key: number; kind: 'happy' | 'spin' | Trick } | null>(null);
   const [editing, setEditing] = useState(false);
   // 第一次來：還沒幫狗狗取名字 → 先請她取名字、選毛色（按「等一下再取」的話，下次打開 App 再問）
   const [welcome, setWelcome] = useState(() => {
@@ -93,16 +110,36 @@ export function CompanionPage({ onOpenBag }: { onOpenBag: () => void }) {
     return () => clearTimeout(t);
   }, [anim]);
 
+  const tricks = unlocksAt(player.petAffection ?? 0).filter((u) => u.kind === 'trick');
   const tap = () => {
     const next = taps + 1;
     setTaps(next);
+    // 學會把戲之後，每點三下表演一次
+    if (stage > 0 && tricks.length > 0 && next % 3 === 0) {
+      const trick = tricks[(next / 3 - 1) % tricks.length];
+      setLine(`${name} 表演「${trick.name}」！`);
+      setAnim({ key: Date.now(), kind: trick.id as Trick });
+      playSound('woof', { rate: 1.6 - 0.45 * growth });
+      return;
+    }
     setLine(petLine(stage, name, next));
     setAnim({ key: Date.now(), kind: 'happy' });
     if (stage === 0) playSound('tap', { rate: 0.7 });
     else playSound('woof', { rate: 1.45 - 0.45 * growth });
   };
 
-  const animating = anim !== null;
+  // 照顧：吃點心時院子裡出現碗與愛心；解鎖新把戲／配飾時跳卡片
+  const [treat, setTreat] = useState<{ key: number; food: PetFood } | null>(null);
+  const [unlockQueue, setUnlockQueue] = useState<PetUnlock[]>([]);
+  useEffect(() => {
+    if (!treat) return;
+    const t = setTimeout(() => setTreat(null), 2200);
+    return () => clearTimeout(t);
+  }, [treat]);
+  const today = toDateStr(new Date());
+  const bathedToday = player.petCare?.day === today && player.petCare.bathed;
+
+  const animating = anim !== null || treat !== null;
   const bubble = line ?? (stage === 0 ? `噓～${name} 在睡覺，點點看！` : `點點 ${name}，跟牠打招呼！`);
   const albumAll = DEV_PREVIEW_AVAILABLE && devAll;
 
@@ -138,13 +175,7 @@ export function CompanionPage({ onOpenBag }: { onOpenBag: () => void }) {
           onClick={tap}
           className="relative z-10 mx-auto mt-3 block"
           key={anim?.key ?? 'idle'}
-          animate={
-            reduce || !anim
-              ? undefined
-              : anim.kind === 'spin'
-                ? { rotate: [0, 360], y: [0, -30, 0] }
-                : { y: [0, -26, 0, -10, 0], rotate: [0, -6, 6, 0] }
-          }
+          animate={reduce || !anim ? undefined : MOTIONS[anim.kind]}
           transition={{ duration: anim?.kind === 'spin' ? 1 : 0.7 }}
         >
           <PuppyArt
@@ -157,7 +188,49 @@ export function CompanionPage({ onOpenBag }: { onOpenBag: () => void }) {
             className="h-64 w-64 sm:h-80 sm:w-80"
             title={name}
           />
+          {/* 洗過澡的這一天：身邊亮晶晶 */}
+          {bathedToday &&
+            ['8%,30%', '84%,24%', '14%,72%', '82%,66%'].map((pos, i) => {
+              const [left, top] = pos.split(',');
+              return (
+                <span key={i} aria-hidden className="pointer-events-none absolute animate-twinkle text-2xl" style={{ left, top, animationDelay: `${-i * 0.5}s` }}>
+                  ✨
+                </span>
+              );
+            })}
         </motion.button>
+
+        {/* 吃點心：碗＋往上飄的愛心 */}
+        <AnimatePresence>
+          {treat && (
+            <motion.div
+              key={treat.key}
+              aria-hidden
+              className="pointer-events-none absolute bottom-24 left-1/2 z-20 -translate-x-1/2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+            >
+              <div className="relative flex flex-col items-center">
+                {[0, 1, 2].map((i) => (
+                  <motion.span
+                    key={i}
+                    className="absolute text-2xl"
+                    initial={{ y: 0, x: (i - 1) * 26, opacity: 0 }}
+                    animate={{ y: -120, opacity: [0, 1, 0] }}
+                    transition={{ duration: 1.6, delay: 0.3 + i * 0.25 }}
+                  >
+                    💗
+                  </motion.span>
+                ))}
+                <motion.span className="text-4xl" animate={{ scale: [1, 0.6, 0] }} transition={{ duration: 1.6, delay: 0.3 }}>
+                  {treat.food.icon}
+                </motion.span>
+                <span className="-mt-2 h-6 w-16 rounded-b-full border-[3px] border-t-0 border-ink bg-rose-400" />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="relative z-10 mt-1 text-center">
           <div className="text-3xl text-ink">
@@ -178,10 +251,36 @@ export function CompanionPage({ onOpenBag }: { onOpenBag: () => void }) {
         </div>
       </section>
 
+      {/* 照顧：餵點心、洗澡、親密度、配飾 */}
+      {realStage > 0 ? (
+        <PetCareSection
+          art={{ stage: realStage, growth: petGrowth(player.level, graduated), color, wear }}
+          onGoShop={onGoShop}
+          onFed={(food, unlocked) => {
+            setTreat({ key: Date.now(), food });
+            setLine(`${name}：${food.line}`);
+            setAnim({ key: Date.now(), kind: 'happy' });
+            playSound('pop', { rate: 1.1 });
+            setTimeout(() => playSound('pop', { rate: 1.3 }), 350);
+            setTimeout(() => playSound('woof', { rate: 1.5 - 0.45 * growth }), 900);
+            if (unlocked.length) setTimeout(() => setUnlockQueue((q) => [...q, ...unlocked]), 1800);
+          }}
+          onBathed={(unlocked) => {
+            setLine(`${name}：洗得香香的，好舒服！謝謝你！`);
+            setAnim({ key: Date.now(), kind: 'happy' });
+            if (unlocked.length) setUnlockQueue((q) => [...q, ...unlocked]);
+          }}
+        />
+      ) : (
+        <section className="toon rounded-3xl bg-white p-4 text-center text-lg text-ink">
+          💤 {name} 還在睡覺，等牠醒來（Lv.{PET_STAGES[1].minLevel}）就可以餵點心、洗澡了！
+        </section>
+      )}
+
       {/* 身上的寶物 */}
       <section className="toon rounded-3xl bg-white p-4 text-ink">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 className="text-xl">🎁 {name} 身上的寶物</h3>
+          <h3 className="min-w-0 truncate text-xl">🎁 身上的寶物</h3>
           {/* 寶物箱從頂端頭像區搬到這裡 */}
           <button
             type="button"
@@ -238,6 +337,32 @@ export function CompanionPage({ onOpenBag }: { onOpenBag: () => void }) {
       </section>
 
       <PetEditor open={editing} onClose={() => setEditing(false)} stage={Math.max(1, realStage)} />
+
+      {/* 親密度解鎖：一張一張跳出來 */}
+      <Modal open={unlockQueue.length > 0} onClose={() => setUnlockQueue((q) => q.slice(1))}>
+        {unlockQueue[0] && (
+          <div className="flex flex-col items-center gap-3 text-center">
+            <PuppyArt
+              stage={realStage}
+              growth={petGrowth(player.level, graduated)}
+              color={color}
+              wear={unlockQueue[0].kind === 'accessory' ? { ...wear, accessory: unlockQueue[0].id as PetAccessory } : wear}
+              happy
+              className="h-40 w-40"
+            />
+            <div className="text-3xl font-black text-ink">💗 {player.petAffection ?? 0}</div>
+            <div className="text-2xl text-ink">
+              {unlockQueue[0].kind === 'trick' ? `${name} 學會了「${unlockQueue[0].name}」！` : `${name} 得到了「${unlockQueue[0].name}」！`}
+            </div>
+            <div className="text-lg text-slate-600">
+              {unlockQueue[0].kind === 'trick' ? '點點狗狗，牠會表演給你看！' : '在「幫狗狗打扮」可以幫牠戴上！'}
+            </div>
+            <Button size="lg" block onClick={() => setUnlockQueue((q) => q.slice(1))}>
+              好耶！
+            </Button>
+          </div>
+        )}
+      </Modal>
       <PetEditor
         open={welcome && !editing}
         welcome

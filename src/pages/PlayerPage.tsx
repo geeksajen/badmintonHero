@@ -52,7 +52,15 @@ export function PlayerPage() {
         {tab === 'map' && <QuestMap onOpenNode={setNode} />}
         {tab === 'map' && <NextGoalCard onOpenNode={setNode} />}
         {tab === 'shop' && <RewardShop />}
-        {tab === 'pet' && <CompanionPage onOpenBag={() => setBag(true)} />}
+        {tab === 'pet' && (
+          <CompanionPage
+            onOpenBag={() => setBag(true)}
+            onGoShop={() => {
+              setTab('shop');
+              window.scrollTo({ top: 0 });
+            }}
+          />
+        )}
         {tab === 'log' && <AdventureLog />}
       </main>
 

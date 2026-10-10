@@ -398,6 +398,9 @@ function AwakePuppy({
             strokeWidth={sw}
           />
         ))}
+
+        {/* 親密度解鎖的配飾（畫在最上層，跟著呼吸一起動） */}
+        {wear.accessory && <Accessory kind={wear.accessory} headR={headR} hy={hy} sw={sw} />}
       </g>
 
       {/* 羽球勇者犬的閃光 */}
@@ -413,6 +416,62 @@ function AwakePuppy({
         ))}
     </g>
   );
+}
+
+/** 親密度解鎖的配飾：蝴蝶結／小帽子／太陽眼鏡／小皇冠 */
+function Accessory({ kind, headR, hy, sw }: { kind: NonNullable<PetWear['accessory']>; headR: number; hy: number; sw: number }) {
+  const r = headR;
+  switch (kind) {
+    case 'bow': {
+      const cx = r * 0.5;
+      const cy = hy - r * 0.72;
+      return (
+        <g>
+          <path d={`M ${cx} ${cy} L ${cx - r * 0.34} ${cy - r * 0.2} L ${cx - r * 0.34} ${cy + r * 0.2} Z`} fill="#F472B6" stroke={INK} strokeWidth={sw * 0.8} strokeLinejoin="round" />
+          <path d={`M ${cx} ${cy} L ${cx + r * 0.34} ${cy - r * 0.2} L ${cx + r * 0.34} ${cy + r * 0.2} Z`} fill="#F472B6" stroke={INK} strokeWidth={sw * 0.8} strokeLinejoin="round" />
+          <circle cx={cx} cy={cy} r={r * 0.1} fill="#FBCFE8" stroke={INK} strokeWidth={sw * 0.8} />
+        </g>
+      );
+    }
+    case 'cap': {
+      const base = hy - r * 0.5;
+      return (
+        <g>
+          <ellipse cx={r * 0.5} cy={base} rx={r * 0.5} ry={r * 0.11} fill="#2563EB" stroke={INK} strokeWidth={sw * 0.8} />
+          <path d={`M ${-r * 0.72} ${base} A ${r * 0.72} ${r * 0.62} 0 0 1 ${r * 0.72} ${base} Z`} fill="#3B82F6" stroke={INK} strokeWidth={sw * 0.9} strokeLinejoin="round" />
+          <circle cx={0} cy={base - r * 0.6} r={r * 0.08} fill="#FACC15" stroke={INK} strokeWidth={sw * 0.6} />
+        </g>
+      );
+    }
+    case 'sunglasses': {
+      const y = hy - r * 0.11;
+      return (
+        <g>
+          {[-1, 1].map((s) => (
+            <g key={s}>
+              <rect x={s * r * 0.38 - r * 0.21} y={y} width={r * 0.42} height={r * 0.27} rx={r * 0.09} fill={INK} />
+              <line x1={s * r * 0.38 - r * 0.12} y1={y + r * 0.07} x2={s * r * 0.38 - r * 0.02} y2={y + r * 0.07} stroke="#FFFFFF" strokeWidth={sw * 0.6} strokeLinecap="round" />
+            </g>
+          ))}
+          <line x1={-r * 0.17} y1={y + r * 0.08} x2={r * 0.17} y2={y + r * 0.08} stroke={INK} strokeWidth={sw * 0.9} />
+        </g>
+      );
+    }
+    case 'crown': {
+      const b = hy - r * 0.72;
+      const w = r * 0.5;
+      const h = r * 0.42;
+      return (
+        <path
+          d={`M ${-w} ${b} L ${-w} ${b - h} L ${-w / 2} ${b - h * 0.55} L 0 ${b - h * 1.1} L ${w / 2} ${b - h * 0.55} L ${w} ${b - h} L ${w} ${b} Z`}
+          fill="#FACC15"
+          stroke={INK}
+          strokeWidth={sw * 0.9}
+          strokeLinejoin="round"
+        />
+      );
+    }
+  }
 }
 
 /** 地上的一顆羽毛球 */

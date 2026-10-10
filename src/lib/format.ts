@@ -18,6 +18,8 @@ export const LOG_ICON: Record<ActivityType, string> = {
   curriculum_updated: '🗺️',
   admin_adjust: '🛠️',
   graduated: '🎓',
+  pet_food_bought: '🦴',
+  pet_unlock: '💗',
 };
 
 export function formatTime(iso: string): string {

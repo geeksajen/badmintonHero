@@ -108,16 +108,106 @@ export function petColorOf(player: Pick<Player, 'petColor'>): PetColor {
   return PET_COLORS.some((c) => c.id === player.petColor) ? (player.petColor as PetColor) : 'cream';
 }
 
-/** 寶箱裡可以穿在狗狗身上的裝備 */
+export type PetAccessory = 'bow' | 'cap' | 'sunglasses' | 'crown';
+
+/** 狗狗身上穿戴的東西：寶箱裝備 ＋ 親密度解鎖、小孩自己選的配飾 */
 export interface PetWear {
   wristband: boolean;
   shoes: boolean;
   scarf: boolean;
+  accessory?: PetAccessory;
 }
 
-export function petWearOf(player: Pick<Player, 'unlockedEquipmentIds'>): PetWear {
+export function petWearOf(player: Pick<Player, 'unlockedEquipmentIds' | 'petAccessory' | 'petAffection'>): PetWear {
   const has = (id: string) => player.unlockedEquipmentIds.includes(id);
-  return { wristband: has('eq_wristband'), shoes: has('eq_shoes'), scarf: has('eq_towel') };
+  const acc = player.petAccessory as PetAccessory | undefined;
+  const accessory = acc && unlockedAccessories(player.petAffection ?? 0).includes(acc) ? acc : undefined;
+  return { wristband: has('eq_wristband'), shoes: has('eq_shoes'), scarf: has('eq_towel'), accessory };
+}
+
+// ---------------------------------------------------------------------------
+// 照顧狗狗：餵點心、洗澡 → 親密度（只增不減）→ 解鎖把戲與配飾
+// 不會餓、不會髒、不會難過；不照顧什麼事都不會發生（spec §8.1）。
+// 親密度不給 EXP／金幣，也不影響長大（長大只看練球的等級）。
+// ---------------------------------------------------------------------------
+
+export interface PetFood {
+  id: string;
+  name: string;
+  icon: string;
+  cost: number;
+  /** 吃一次加幾顆 💗 */
+  hearts: number;
+  line: string;
+}
+
+export const PET_FOODS: PetFood[] = [
+  { id: 'pf_biscuit', name: '狗狗餅乾', icon: '🍪', cost: 5, hearts: 1, line: '喀滋喀滋～好香的餅乾！' },
+  { id: 'pf_bone', name: '小骨頭', icon: '🦴', cost: 10, hearts: 1, line: '是骨頭耶！我最喜歡了！' },
+  { id: 'pf_can', name: '肉肉罐頭', icon: '🥫', cost: 20, hearts: 1, line: '肉肉罐頭～好好吃，謝謝你！' },
+  { id: 'pf_cake', name: '生日蛋糕', icon: '🎂', cost: 50, hearts: 2, line: '哇！是蛋糕！今天是最棒的一天！' },
+];
+
+/** 每天最多吃幾次點心、兩次之間至少隔多久 */
+export const PET_MEALS_PER_DAY = 3;
+export const PET_MEAL_GAP_MS = 4 * 60 * 60 * 1000;
+
+export interface PetUnlock {
+  hearts: number;
+  kind: 'trick' | 'accessory';
+  id: string;
+  name: string;
+}
+
+export const PET_UNLOCKS: PetUnlock[] = [
+  { hearts: 3, kind: 'trick', id: 'shake', name: '握手' },
+  { hearts: 6, kind: 'accessory', id: 'bow', name: '蝴蝶結' },
+  { hearts: 10, kind: 'trick', id: 'spin', name: '轉圈圈' },
+  { hearts: 15, kind: 'accessory', id: 'cap', name: '小帽子' },
+  { hearts: 20, kind: 'trick', id: 'highfive', name: '擊掌' },
+  { hearts: 30, kind: 'accessory', id: 'sunglasses', name: '太陽眼鏡' },
+  { hearts: 40, kind: 'trick', id: 'racket', name: '揮拍' },
+  { hearts: 50, kind: 'accessory', id: 'crown', name: '小皇冠' },
+];
+
+export function unlocksAt(affection: number): PetUnlock[] {
+  return PET_UNLOCKS.filter((u) => affection >= u.hearts);
+}
+
+export function unlockedAccessories(affection: number): PetAccessory[] {
+  return unlocksAt(affection)
+    .filter((u) => u.kind === 'accessory')
+    .map((u) => u.id as PetAccessory);
+}
+
+/** 這次從 before 加到 after，新解鎖了哪些 */
+export function newUnlocks(before: number, after: number): PetUnlock[] {
+  return PET_UNLOCKS.filter((u) => u.hearts > before && u.hearts <= after);
+}
+
+/** 下一個還沒解鎖的獎勵（沒有了回傳 undefined） */
+export function nextUnlock(affection: number): PetUnlock | undefined {
+  return PET_UNLOCKS.find((u) => u.hearts > affection);
+}
+
+export interface PetCareStatus {
+  mealsLeft: number;
+  /** 還要等到什麼時候才能再吃（現在就能吃 → undefined） */
+  nextMealAt?: Date;
+  canBathe: boolean;
+}
+
+/** 今天還能怎麼照顧（換日自動重新計算） */
+export function petCareStatus(player: Pick<Player, 'petCare'>, now: Date, today: string): PetCareStatus {
+  const care = player.petCare?.day === today ? player.petCare : undefined;
+  const meals = care?.meals ?? 0;
+  const mealsLeft = Math.max(0, PET_MEALS_PER_DAY - meals);
+  let nextMealAt: Date | undefined;
+  if (mealsLeft > 0 && care?.lastMealAt) {
+    const t = new Date(new Date(care.lastMealAt).getTime() + PET_MEAL_GAP_MS);
+    if (t > now) nextMealAt = t;
+  }
+  return { mealsLeft, nextMealAt, canBathe: !care?.bathed };
 }
 
 export function petLine(stage: number, name: string, seed: number): string {

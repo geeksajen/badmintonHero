@@ -9,6 +9,7 @@ import type {
   ActivityLog,
   Curriculum,
   LiveEvent,
+  PetCareDay,
   PracticeSession,
   Player,
   QuestProgress,
@@ -31,7 +32,18 @@ import {
   type Grants,
 } from './grant';
 import { checkGraduation } from './graduation';
-import { PET_COLORS, PET_MAX_STAGE, PET_NAME_MAX_LENGTH, petStageIndex } from './pet';
+import {
+  PET_COLORS,
+  PET_FOODS,
+  PET_MAX_STAGE,
+  PET_NAME_MAX_LENGTH,
+  newUnlocks,
+  petCareStatus,
+  petNameOf,
+  petStageIndex,
+  unlockedAccessories,
+  type PetAccessory,
+} from './pet';
 import { reconcile } from './reconcile';
 import { settleNode } from './settle';
 import { newlyRevealedChapters } from './stats';
@@ -527,6 +539,82 @@ export function setShopOverride(
   }
   const g = startGrants({ ...state.player, shopOverrides: cur });
   return finish(state, ctx, g, prepared(state, ctx));
+}
+
+// ---------------------------------------------------------------------------
+// 照顧狗狗（不寫 lastEvent：動畫在小孩自己的裝置上播）
+// ---------------------------------------------------------------------------
+
+/** 在商店買狗狗點心：立即扣款、放進點心盒，不需要家長出貨 */
+export function buyPetFood(state: GameState, ctx: Ctx, input: { foodId: string }): ActionResult {
+  const food = PET_FOODS.find((f) => f.id === input.foodId);
+  if (!food) throw new Error('找不到這個點心');
+  if (state.player.coins < food.cost) throw new Error(`還差 ${food.cost - state.player.coins} 金幣`);
+  const box = { ...state.player.petFood };
+  box[food.id] = (box[food.id] ?? 0) + 1;
+  const g = startGrants({ ...state.player, coins: state.player.coins - food.cost, petFood: box });
+  addLog(g, ctx, { type: 'pet_food_bought', message: `買了 ${food.icon} ${food.name} 給狗狗 -${food.cost} 金幣`, coinDelta: -food.cost });
+  return finish(state, ctx, g, prepared(state, ctx), { emitEvent: false });
+}
+
+/** 親密度增加；跨過門檻時記一筆日誌（只增不減） */
+function addHearts(g: Grants, ctx: Ctx, hearts: number): void {
+  const before = g.player.petAffection ?? 0;
+  const after = before + hearts;
+  g.player = { ...g.player, petAffection: after };
+  const name = petNameOf(g.player);
+  for (const u of newUnlocks(before, after)) {
+    addLog(g, ctx, {
+      type: 'pet_unlock',
+      message: u.kind === 'trick' ? `💗 ${name} 學會了「${u.name}」！` : `💗 ${name} 得到了「${u.name}」！`,
+    });
+  }
+}
+
+function careToday(player: Player, ctx: Ctx): PetCareDay {
+  const day = toDateStr(ctx.now);
+  return player.petCare?.day === day ? player.petCare : { day, meals: 0, bathed: false };
+}
+
+/** 餵點心：一天最多 3 次、每次間隔 4 小時；吃飽了只是友善提示，不會有任何懲罰 */
+export function feedPet(state: GameState, ctx: Ctx, input: { foodId: string }): ActionResult {
+  const food = PET_FOODS.find((f) => f.id === input.foodId);
+  if (!food) throw new Error('找不到這個點心');
+  const have = state.player.petFood?.[food.id] ?? 0;
+  if (have <= 0) throw new Error(`點心盒裡沒有${food.name}了，去商店買吧！`);
+  const name = petNameOf(state.player);
+  const status = petCareStatus(state.player, ctx.now, toDateStr(ctx.now));
+  if (status.mealsLeft <= 0) throw new Error(`${name} 今天吃飽飽了，明天再一起吃！`);
+  if (status.nextMealAt) throw new Error(`${name} 還飽飽的，等一下再吃喔！`);
+
+  const care = careToday(state.player, ctx);
+  const box = { ...state.player.petFood, [food.id]: have - 1 };
+  const g = startGrants({
+    ...state.player,
+    petFood: box,
+    petCare: { ...care, meals: care.meals + 1, lastMealAt: ctx.now.toISOString() },
+  });
+  addHearts(g, ctx, food.hearts);
+  return finish(state, ctx, g, prepared(state, ctx), { emitEvent: false });
+}
+
+/** 洗澡：一天一次 */
+export function bathePet(state: GameState, ctx: Ctx): ActionResult {
+  const name = petNameOf(state.player);
+  if (!petCareStatus(state.player, ctx.now, toDateStr(ctx.now)).canBathe) throw new Error(`${name} 今天已經洗得香香的了！`);
+  const care = careToday(state.player, ctx);
+  const g = startGrants({ ...state.player, petCare: { ...care, bathed: true } });
+  addHearts(g, ctx, 1);
+  return finish(state, ctx, g, prepared(state, ctx), { emitEvent: false });
+}
+
+/** 選狗狗戴的配飾（null = 不戴）。只能選已解鎖的 */
+export function setPetAccessory(state: GameState, ctx: Ctx, input: { id: string | null }): ActionResult {
+  if (input.id !== null && !unlockedAccessories(state.player.petAffection ?? 0).includes(input.id as PetAccessory)) {
+    throw new Error('還沒解鎖這個配飾');
+  }
+  const player = { ...state.player, petAccessory: input.id ?? undefined };
+  return finish(state, ctx, startGrants(player), prepared(state, ctx));
 }
 
 /** 小孩在商店釘選存錢目標（null 取消）。純顯示用，不寫日誌、不發 lastEvent */

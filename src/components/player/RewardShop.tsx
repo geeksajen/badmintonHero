@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { canRedeem, effectiveRewards, redeemedThisWeek } from '../../engine/economy';
+import { PET_FOODS, petNameOf, type PetFood } from '../../engine/pet';
 import { useGameActions } from '../../hooks/useGameActions';
 import { useReadyGame } from '../../hooks/useGameState';
 import { useHistory } from '../../hooks/useHistory';
@@ -21,6 +22,8 @@ export function RewardShop() {
   const [done, setDone] = useState<RewardItem | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [buyingFood, setBuyingFood] = useState<PetFood | null>(null);
+  const [foodError, setFoodError] = useState<string | null>(null);
   const now = new Date();
 
   const items = effectiveRewards(curriculum.rewards, player);
@@ -95,6 +98,39 @@ export function RewardShop() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{normal.map(card)}</div>
+
+      {/* 狗狗點心：立即放進點心盒，不需要爸媽準備 */}
+      <section>
+        <h3 className="mb-1 flex items-center gap-2 text-2xl text-ink">
+          <span className="animate-wiggle">🦴</span> 狗狗點心區
+        </h3>
+        <p className="mb-3 text-base text-slate-600">買了馬上放進點心盒，到「夥伴」餵 {petNameOf(player)} 吃！</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {PET_FOODS.map((f) => {
+            const ok = player.coins >= f.cost;
+            const have = player.petFood?.[f.id] ?? 0;
+            return (
+              <motion.button
+                key={f.id}
+                type="button"
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setFoodError(null);
+                  setBuyingFood(f);
+                }}
+                className={`toon toon-press flex min-h-[150px] flex-col items-center justify-between rounded-3xl p-3 text-center text-ink ${
+                  ok ? 'bg-orange-100' : 'bg-slate-100 opacity-80 grayscale-[70%]'
+                }`}
+              >
+                <span className="text-5xl">{f.icon}</span>
+                <span className="text-lg leading-tight">{f.name}</span>
+                <span className="toon-sm -rotate-3 rounded-full bg-yellow-300 px-3 py-0.5 font-game text-lg font-extrabold text-amber-950">🪙 {f.cost}</span>
+                <span className="text-sm text-slate-600">點心盒裡有 {have} 個</span>
+              </motion.button>
+            );
+          })}
+        </div>
+      </section>
 
       {stationery.length > 0 && (
         <section>
@@ -201,6 +237,39 @@ export function RewardShop() {
             {player.savingsGoalId === picking.id ? '📌 取消存錢目標' : '📌 設成我的存錢目標'}
           </Button>
         )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={!!buyingFood}
+        title={buyingFood ? `${buyingFood.icon} ${buyingFood.name}` : ''}
+        message={
+          buyingFood && player.coins >= buyingFood.cost ? (
+            <>
+              要用 <b className="text-amber-600">{buyingFood.cost} 金幣</b> 買「{buyingFood.name}」給 {petNameOf(player)} 嗎？
+            </>
+          ) : (
+            <span className="font-bold">還差 {buyingFood ? buyingFood.cost - player.coins : 0} 金幣，繼續加油！💪</span>
+          )
+        }
+        confirmText="買！"
+        busy={busy || !buyingFood || player.coins < buyingFood.cost}
+        onConfirm={async () => {
+          if (!buyingFood) return;
+          setBusy(true);
+          setFoodError(null);
+          try {
+            await actions.buyPetFood({ foodId: buyingFood.id });
+            playSound('coin');
+            setBuyingFood(null);
+          } catch (e) {
+            setFoodError((e as Error).message);
+          } finally {
+            setBusy(false);
+          }
+        }}
+        onCancel={() => setBuyingFood(null)}
+      >
+        {foodError && <p className="mb-2 text-lg font-bold text-rose-600">{foodError}</p>}
       </ConfirmDialog>
 
       <Modal open={!!done} onClose={() => setDone(null)}>
