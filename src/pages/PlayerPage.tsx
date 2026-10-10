@@ -34,8 +34,8 @@ export function PlayerPage() {
   const queue = useCelebrationQueue(playerId, player.lastEvent);
 
   return (
-    <div className={`kid-theme sky-bg min-h-dvh text-ink ${tab === 'map' ? 'pb-56' : 'pb-32'}`}>
-      <HeroHeader onOpenBag={() => setBag(true)} onOpenProfile={() => setProfile(true)} />
+    <div className={`kid-theme sky-bg min-h-dvh text-ink ${tab === 'map' ? 'pb-44' : 'pb-28'}`}>
+      <HeroHeader onOpenProfile={() => setProfile(true)} />
 
       {player.graduatedAt && (
         <div className="px-3">
@@ -52,12 +52,12 @@ export function PlayerPage() {
         {tab === 'map' && <QuestMap onOpenNode={setNode} />}
         {tab === 'map' && <NextGoalCard onOpenNode={setNode} />}
         {tab === 'shop' && <RewardShop />}
-        {tab === 'pet' && <CompanionPage />}
+        {tab === 'pet' && <CompanionPage onOpenBag={() => setBag(true)} />}
         {tab === 'log' && <AdventureLog />}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4">
-        <div className="toon mx-auto grid max-w-3xl grid-cols-4 gap-1.5 sm:gap-2 rounded-[1.75rem] bg-white/95 p-2 backdrop-blur-md">
+      <nav className="fixed inset-x-0 bottom-0 z-30 px-2 pb-[max(0.375rem,env(safe-area-inset-bottom))] sm:px-4">
+        <div className="toon mx-auto grid max-w-3xl grid-cols-4 gap-1.5 rounded-[1.5rem] bg-white/95 p-1.5 backdrop-blur-md sm:gap-2">
           {TABS.map(({ id, label, emoji, color }) => {
             const active = tab === id;
             return (
@@ -69,13 +69,13 @@ export function PlayerPage() {
                   setTab(id);
                   window.scrollTo({ top: 0 });
                 }}
-                className={`flex min-h-[72px] flex-col items-center justify-center whitespace-nowrap rounded-2xl text-base transition sm:text-lg ${
+                className={`flex min-h-[64px] flex-col items-center justify-center whitespace-nowrap rounded-2xl text-sm transition sm:text-lg ${
                   active ? `toon-sm ${color} text-ink` : 'text-slate-500'
                 }`}
               >
                 <motion.span
                   aria-hidden
-                  className="text-3xl leading-none"
+                  className="text-2xl leading-none sm:text-3xl"
                   animate={active ? { y: [0, -6, 0], rotate: [0, -8, 8, 0] } : { y: 0, rotate: 0 }}
                   transition={{ duration: 0.5 }}
                 >

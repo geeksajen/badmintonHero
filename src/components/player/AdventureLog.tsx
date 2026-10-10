@@ -1,4 +1,5 @@
 import { RefreshCw } from 'lucide-react';
+import { weeksLeft } from '../../engine/graduation';
 import { useReadyGame } from '../../hooks/useGameState';
 import { useHistory } from '../../hooks/useHistory';
 import { formatTime, LOG_ICON } from '../../lib/format';
@@ -33,12 +34,21 @@ function bubbleColor(type: ActivityType): string {
 
 /** 冒險日誌：上面蓋章月曆，下面文字日誌。getDocs limit(20) ＋ 1 小時快取，不監聽（spec §2.2 ③-4） */
 export function AdventureLog() {
-  const { player } = useReadyGame();
+  const { player, curriculum } = useReadyGame();
   const { data, loading, error, refresh } = useHistory('logs', player.logsRev ?? 0);
   const visible = data.filter((l) => l.type !== 'admin_adjust');
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
+      {/* 練習次數與畢業倒數（從頂端頭像區搬過來，讓地圖畫面更寬） */}
+      <div className="mb-4 flex flex-wrap justify-center gap-2 text-lg">
+        <span className="toon-sm whitespace-nowrap rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">
+          🏸 練習 {player.sessionCount} / {curriculum.plannedSessions} 次
+        </span>
+        <span className="toon-sm whitespace-nowrap rounded-full bg-sky-100 px-3 py-1 text-sky-800">
+          {player.graduatedAt ? '🎓 已畢業' : `⏳ 畢業倒數 ${weeksLeft(player, curriculum, new Date())} 週`}
+        </span>
+      </div>
       <StampCalendar />
       <div className="toon mb-5 flex items-center justify-between rounded-3xl bg-gradient-to-r from-pink-300 via-rose-300 to-orange-200 py-2 pl-5 pr-2 text-ink">
         <h2 className="flex items-center gap-2 text-3xl">

@@ -38,7 +38,7 @@ function seenKey(playerId: string) {
  * 夥伴分頁：狗狗住的小院子。成長只看等級（只升不降）；點狗狗會開心地跳一下、汪一聲、說一句話。
  * 每次練習後第一次打開，狗狗會開心轉一圈。不會餓、不會難過、不會變小（spec §8.1）。
  */
-export function CompanionPage() {
+export function CompanionPage({ onOpenBag }: { onOpenBag: () => void }) {
   const { player, playerId } = useReadyGame();
   const reduce = !!useReducedMotion();
   const devAll = useShowAllChapters(); // 只有 npm run dev 時可能為 true
@@ -109,14 +109,14 @@ export function CompanionPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-5 px-4 py-6">
       <div className="toon dots flex items-center justify-between gap-2 rounded-3xl bg-gradient-to-r from-sky-300 via-cyan-200 to-lime-200 py-2 pl-5 pr-2 text-ink">
-        <h2 className="flex min-w-0 items-center gap-2 text-3xl">
+        <h2 className="flex min-w-0 items-center gap-2 whitespace-nowrap text-2xl sm:text-3xl">
           <span className="animate-wiggle">🐶</span>
-          <span className="truncate">我的夥伴</span>
+          <span>我的夥伴</span>
         </h2>
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="toon-sm toon-press flex min-h-[64px] shrink-0 items-center gap-1 rounded-2xl bg-white px-4 text-lg"
+          className="toon-sm toon-press flex min-h-[56px] shrink-0 items-center gap-1 whitespace-nowrap rounded-2xl bg-white px-3 text-base sm:min-h-[64px] sm:px-4 sm:text-lg"
         >
           ✏️ 名字和毛色
         </button>
@@ -180,7 +180,17 @@ export function CompanionPage() {
 
       {/* 身上的寶物 */}
       <section className="toon rounded-3xl bg-white p-4 text-ink">
-        <h3 className="mb-2 text-xl">🎁 {name} 身上的寶物</h3>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h3 className="text-xl">🎁 {name} 身上的寶物</h3>
+          {/* 寶物箱從頂端頭像區搬到這裡 */}
+          <button
+            type="button"
+            onClick={onOpenBag}
+            className="toon-sm toon-press flex min-h-[56px] shrink-0 items-center gap-1 rounded-2xl bg-orange-300 px-4 text-lg"
+          >
+            🧰 我的寶物箱
+          </button>
+        </div>
         <ul className="grid grid-cols-3 gap-2 text-center text-base">
           {[
             { on: wear.wristband, icon: '🎽', label: '護腕' },

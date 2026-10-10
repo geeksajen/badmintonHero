@@ -65,6 +65,7 @@ export function QuestNodeItem({
       {/* 「你在這裡！」：狗狗夥伴陪著小朋友標示目前的關卡 */}
       {hereMarker && (
         <div
+          id="here-marker"
           aria-hidden
           className="pointer-events-none absolute left-1/2 flex animate-bob flex-col items-center"
           style={{ top: node.isBoss ? -112 : -94 }}

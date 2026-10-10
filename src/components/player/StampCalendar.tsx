@@ -102,7 +102,7 @@ export function StampCalendar() {
         >
           <ChevronLeft size={34} strokeWidth={3} />
         </button>
-        <h2 className="flex items-center gap-2 text-2xl sm:text-3xl">
+        <h2 className="flex items-center gap-2 whitespace-nowrap text-xl sm:text-3xl">
           <span aria-hidden>📅</span> {y} 年 {m} 月
         </h2>
         <button
